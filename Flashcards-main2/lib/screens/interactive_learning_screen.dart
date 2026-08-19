@@ -3,10 +3,12 @@ import '../mock_data.dart';
 
 class InteractiveLearningScreen extends StatefulWidget {
   final String selectedConcept;
+  final Map<String, String> attributeImages;
 
   const InteractiveLearningScreen({
     super.key,
     required this.selectedConcept,
+    this.attributeImages = const {},
   });
 
   @override
@@ -45,6 +47,36 @@ class _InteractiveLearningScreenState extends State<InteractiveLearningScreen>
     });
   }
 
+  void _showEnlargedImage(String imageUrl) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(12),
+        child: Stack(
+          alignment: Alignment.topRight,
+          children: [
+            InteractiveViewer(
+              minScale: 0.8,
+              maxScale: 4,
+              child: Image.network(imageUrl, fit: BoxFit.contain),
+            ),
+            IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.close, color: Colors.white, size: 30),
+              tooltip: 'Close image',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _attributeKey(String concept) {
+    return concept == 'Use' ? 'function' : concept.toLowerCase();
+  }
+
   // Map concept names to icons
   IconData _iconFor(String concept) {
     final match = dogConcepts.where((c) => c.concept == concept);
@@ -78,6 +110,8 @@ class _InteractiveLearningScreenState extends State<InteractiveLearningScreen>
     final conceptValue =
         dogConcepts.where((c) => c.concept == _currentConcept).first.value;
     final color = _colorFor(_currentConcept);
+    final attributeImage =
+        widget.attributeImages[_attributeKey(_currentConcept)] ?? '';
 
     // Other concepts for bottom chips (exclude current)
     final otherConcepts =
@@ -151,25 +185,35 @@ class _InteractiveLearningScreenState extends State<InteractiveLearningScreen>
                           ),
                         ],
                       ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _iconFor(_currentConcept),
-                            size: 64,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            conceptValue,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                      child: attributeImage.isEmpty
+                          ? Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(_iconFor(_currentConcept),
+                                    size: 64, color: Colors.white),
+                                const SizedBox(height: 12),
+                                Text(conceptValue,
+                                    style: const TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white)),
+                              ],
+                            )
+                          : GestureDetector(
+                              onTap: () => _showEnlargedImage(attributeImage),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Image.network(
+                                  attributeImage,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => Center(
+                                      child: Icon(_iconFor(_currentConcept),
+                                          size: 64, color: Colors.white)),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                     const SizedBox(height: 28),
                     // Explanation

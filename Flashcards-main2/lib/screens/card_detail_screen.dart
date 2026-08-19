@@ -14,6 +14,14 @@ class CardDetailScreen extends StatelessWidget {
     this.attributes = const [],
   });
 
+  Map<String, String> get _attributeImages => {
+        for (final attribute in attributes)
+          if (attribute['attribute_type'] is String &&
+              attribute['attribute_image'] is String)
+            attribute['attribute_type'] as String:
+                attribute['attribute_image'] as String,
+      };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,64 +113,7 @@ class CardDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  if (attributes.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    const Text('Attribute images',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF424242))),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 150,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: attributes.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final attribute = attributes[index];
-                          final image =
-                              attribute['attribute_image'] as String? ?? '';
-                          final label =
-                              (attribute['attribute_type'] as String? ??
-                                      'attribute')
-                                  .toUpperCase();
-                          return SizedBox(
-                            width: 130,
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: image.isEmpty
-                                        ? const Center(
-                                            child: Icon(Icons.image_outlined,
-                                                size: 42))
-                                        : Image.network(image,
-                                            width: 130,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) =>
-                                                const Center(
-                                                    child: Icon(
-                                                        Icons
-                                                            .broken_image_outlined,
-                                                        size: 42))),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(label,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700)),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+
                   const SizedBox(height: 8),
                   Text(
                     'Tap any concept below to explore it interactively.',
@@ -202,6 +153,7 @@ class CardDetailScreen extends StatelessWidget {
                           MaterialPageRoute(
                             builder: (_) => InteractiveLearningScreen(
                               selectedConcept: concept.concept,
+                              attributeImages: _attributeImages,
                             ),
                           ),
                         );
