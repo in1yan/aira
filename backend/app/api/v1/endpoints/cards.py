@@ -39,6 +39,7 @@ async def create_card(
     is_published: bool = Form(False),
     card_image: UploadFile = File(...),
     attributes: str | None = Form(None),
+    attribute_images: list[UploadFile] | None = File(None),
     db: Session = Depends(get_db),
     admin: User = Depends(get_current_admin),
 ) -> Cards:
@@ -72,6 +73,17 @@ async def create_card(
                 detail="attributes must be a valid JSON array",
             ) from exc
 
+    if attribute_images:
+        if not parsed_attributes:
+            parsed_attributes = [
+                CardAttributeCreate() for _ in attribute_images
+            ]
+        elif len(attribute_images) != len(parsed_attributes):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Provide one attribute_images file for each attribute",
+            )
+
     image_bytes = await card_image.read(settings.MAX_UPLOAD_SIZE + 1)
     await card_image.close()
     if len(image_bytes) > settings.MAX_UPLOAD_SIZE:
@@ -79,6 +91,38 @@ async def create_card(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"Image must be {settings.MAX_UPLOAD_SIZE} bytes or smaller",
         )
+
+    attribute_uploads: list[tuple[str, bytes]] = []
+    for attribute_image in attribute_images or []:
+        if (
+            not attribute_image.content_type
+            or not attribute_image.content_type.startswith("image/")
+        ):
+            await attribute_image.close()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="attribute_images must contain only image files",
+            )
+
+        attribute_extension = Path(attribute_image.filename or "").suffix.lower()
+        if attribute_extension not in IMAGE_EXTENSIONS:
+            await attribute_image.close()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Unsupported attribute image type",
+            )
+
+        attribute_bytes = await attribute_image.read(settings.MAX_UPLOAD_SIZE + 1)
+        await attribute_image.close()
+        if len(attribute_bytes) > settings.MAX_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=(
+                    "Each attribute image must be "
+                    f"{settings.MAX_UPLOAD_SIZE} bytes or smaller"
+                ),
+            )
+        attribute_uploads.append((attribute_extension, attribute_bytes))
 
     image_directory = Path(settings.CARD_TEMPLATE_DIR) / "images"
     image_directory.mkdir(parents=True, exist_ok=True)
@@ -93,19 +137,32 @@ async def create_card(
         ],
     )
     db.add(card)
-    image_path: Path | None = None
+    stored_image_paths: list[Path] = []
     try:
         # Flush assigns the database-generated ID without committing the card yet.
         db.flush()
+
         image_path = image_directory / f"{card.id}{extension}"
         image_path.write_bytes(image_bytes)
+        stored_image_paths.append(image_path)
         card.card_image = image_path.as_posix()
+
+        for index, ((attribute_extension, attribute_bytes), attribute) in enumerate(
+            zip(attribute_uploads, card.attributes, strict=True)
+        ):
+            attribute_path = (
+                image_directory / f"{card.id}_attribute_{index}{attribute_extension}"
+            )
+            attribute_path.write_bytes(attribute_bytes)
+            stored_image_paths.append(attribute_path)
+            attribute.attribute_image = attribute_path.as_posix()
+
         db.commit()
         db.refresh(card)
     except Exception:
         db.rollback()
-        if image_path is not None:
-            image_path.unlink(missing_ok=True)
+        for stored_image_path in stored_image_paths:
+            stored_image_path.unlink(missing_ok=True)
         raise
 
     return card
