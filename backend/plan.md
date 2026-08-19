@@ -7,9 +7,9 @@ Add an image-detection service and API route that recognizes an uploaded card im
 ## Implementation
 
 1. **Template discovery and indexing**
-   - Use `backend/card_db` as the default template directory.
-   - Load supported image files (`.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`) from the directory.
-   - Decode each template with OpenCV and precompute grayscale ORB keypoints and descriptors once when the service is initialized.
+   - Use `backend/card_db` as the default template directory and `backend/card_db/orb_index.npz` as the default descriptor index.
+   - Load the `.npz` index when it exists, using its stored template names, keypoint coordinates, and ORB descriptors.
+   - Fall back to loading supported image files (`.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`) and precomputing grayscale ORB keypoints and descriptors when no index is available.
    - Use the template filename stem as the detected card identifier.
    - Fail clearly if the template directory is missing; skip unreadable templates and templates without descriptors.
 

@@ -1,0 +1,28 @@
+info:
+  name: detect
+  type: http
+  seq: 6
+
+http:
+  method: post
+  url: http://localhost:8000/api/v1/detect
+  headers:
+    - name: accept
+      value: application/json
+    - name: Content-Type
+      value: multipart/form-data
+  body:
+    type: multipart-form
+    data:
+      - name: image
+        type: file
+        value:
+          - C:\Users\viniy\Downloads\IMG_20260819_152946.jpg
+        contentType: image/jpeg
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

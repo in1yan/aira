@@ -19,7 +19,12 @@ class CardDetectionError(ValueError):
 class CardRecognizer:
     """Recognize cards using ORB features and RANSAC homography matching."""
 
-    def __init__(self, template_dir: Path, nfeatures: int = 3000) -> None:
+    def __init__(
+        self,
+        template_dir: Path,
+        nfeatures: int = 3000,
+        index_path: Path | None = None,
+    ) -> None:
         self.template_dir = template_dir
         self.orb = cv2.ORB_create(
             nfeatures=nfeatures,
@@ -29,7 +34,38 @@ class CardRecognizer:
         )
         self.matcher = cv2.BFMatcher(cv2.NORM_HAMMING)
         self.templates: dict[str, dict[str, Any]] = {}
-        self._load_templates()
+
+        if index_path is not None and index_path.exists():
+            self._load_index(index_path)
+        else:
+            self._load_templates()
+
+    def _load_index(self, index_path: Path) -> None:
+        try:
+            with np.load(index_path, allow_pickle=False) as data:
+                template_count = int(data["template_count"][0])
+                for index in range(template_count):
+                    name = str(data[f"name_{index}"])
+                    points = np.asarray(data[f"keypoints_{index}"], dtype=np.float32)
+                    descriptors = np.asarray(data[f"descriptors_{index}"])
+
+                    if points.ndim != 2 or points.shape[1] != 2:
+                        continue
+                    if descriptors.ndim != 2 or len(points) != len(descriptors):
+                        continue
+
+                    keypoints = [
+                        cv2.KeyPoint(float(x), float(y), 1.0)
+                        for x, y in points
+                    ]
+                    self.templates[name] = {
+                        "keypoints": keypoints,
+                        "descriptors": descriptors,
+                    }
+        except (KeyError, OSError, ValueError) as exc:
+            raise CardDetectionError(
+                f"Could not load card descriptor index: {index_path}"
+            ) from exc
 
     def _load_templates(self) -> None:
         if not self.template_dir.exists():
@@ -54,10 +90,12 @@ class CardRecognizer:
                 "descriptors": descriptors,
             }
 
-    def _describe(self, image: np.ndarray) -> tuple[list[cv2.KeyPoint], np.ndarray | None]:
+    def _describe(
+        self, image: np.ndarray
+    ) -> tuple[list[cv2.KeyPoint], np.ndarray | None]:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         keypoints, descriptors = self.orb.detectAndCompute(gray, None)
-        return keypoints or [], descriptors
+        return list(keypoints or []), descriptors
 
     def _match_template(
         self,
@@ -155,7 +193,9 @@ class CardRecognizer:
 
 @lru_cache(maxsize=1)
 def get_card_recognizer() -> CardRecognizer:
+    index_path = Path(settings.CARD_INDEX_PATH)
     return CardRecognizer(
         template_dir=Path(settings.CARD_TEMPLATE_DIR),
         nfeatures=settings.CARD_ORB_FEATURES,
+        index_path=index_path,
     )

@@ -1,7 +1,9 @@
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, UploadFile, status, Depends
+
 
 from app.core.config import settings
 from app.services.card_detection import CardDetectionError, get_card_recognizer
+from app.dependancies.auth import get_current_user
 
 router = APIRouter()
 
@@ -10,6 +12,7 @@ router = APIRouter()
     "",
     status_code=status.HTTP_200_OK,
     summary="Detect a card from an uploaded image",
+    dependencies=[Depends(get_current_user)],
 )
 async def detect_card(image: UploadFile = File(...)) -> dict:
     """Match an uploaded card image against templates without storing the upload."""

@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     ALLOWED_EXTENSIONS: List[str] = ["jpg", "jpeg", "png", "gif", "mp4", "mkv", "avi"]
     CARD_TEMPLATE_DIR: str = "card_db"
+    CARD_INDEX_PATH: str = "card_db/orb_index.npz"
     CARD_ORB_FEATURES: int = 3000
     CARD_MIN_INLIERS: int = 12
     CARD_MIN_INLIER_RATIO: float = 0.35
