@@ -1,15 +1,20 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
 
+if TYPE_CHECKING:
+    from app.models.card_attr import CardAttributes
+    from app.models.users import User
+
 
 class Cards(Base):
     __tablename__ = "cards"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)

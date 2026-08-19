@@ -38,7 +38,7 @@ def upgrade() -> None:
     if "cards" not in table_names:
         op.create_table(
             "cards",
-            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("name", sa.String(length=255), nullable=False),
             sa.Column("user_id", sa.Integer(), nullable=False),
             sa.Column("is_published", sa.Boolean(), nullable=False, server_default=sa.false()),
@@ -57,7 +57,7 @@ def upgrade() -> None:
     if "card_attributes" not in table_names:
         op.create_table(
             "card_attributes",
-            sa.Column("id", sa.Integer(), nullable=False),
+            sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
             sa.Column("card_id", sa.Integer(), nullable=False),
             sa.Column("attribute_image", sa.String(length=500), nullable=True),
             sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),

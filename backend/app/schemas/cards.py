@@ -8,7 +8,7 @@ class CardAttributeCreate(BaseModel):
 class CardCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     is_published: bool = False
-    card_image: str | None = Field(default=None, max_length=500)
+
     attributes: list[CardAttributeCreate] = Field(default_factory=list)
 
 
