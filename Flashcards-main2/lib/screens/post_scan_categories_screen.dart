@@ -1,13 +1,32 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import '../services/api_client.dart';
 import 'category_image_screen.dart';
 
 class PostScanCategoriesScreen extends StatelessWidget {
   final String? imagePath;
   final Map<String, dynamic>? detectionResult;
+  final Map<String, dynamic>? cardDetails;
 
-  const PostScanCategoriesScreen(
-      {super.key, this.imagePath, this.detectionResult});
+  const PostScanCategoriesScreen({
+    super.key,
+    this.imagePath,
+    this.detectionResult,
+    this.cardDetails,
+  });
+
+  String? _attributeImageFor(String label) {
+    final key = label.toLowerCase();
+    final attributes =
+        (cardDetails?['attributes'] as List<dynamic>?) ?? const [];
+    for (final rawAttribute in attributes) {
+      if (rawAttribute is Map<String, dynamic> &&
+          rawAttribute['attribute_type'] == key) {
+        return apiClient.imageUrl(rawAttribute['attribute_image'] as String?);
+      }
+    }
+    return null;
+  }
 
   static const List<_CategoryItem> _categories = [
     _CategoryItem(
@@ -50,12 +69,12 @@ class PostScanCategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final matchedCard = detectionResult?['card'] as Map<String, dynamic>?;
+    final matchedCard = detectionResult?['card'] as String?;
     final resultText = detectionResult == null
         ? 'No scan result'
         : matchedCard == null
             ? 'No matching card found'
-            : 'Matched: ${matchedCard['name']}';
+            : 'Matched: ${cardDetails?['name'] ?? matchedCard}';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF8),
@@ -176,6 +195,7 @@ class PostScanCategoriesScreen extends StatelessWidget {
                           categoryName: cat.label,
                           categoryIcon: cat.icon,
                           categoryColor: cat.color,
+                          imageUrl: _attributeImageFor(cat.label),
                         ),
                       ),
                     );

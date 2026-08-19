@@ -71,13 +71,20 @@ class _ScanFlashCardScreenState extends State<ScanFlashCardScreen>
     try {
       final photo = await _controller!.takePicture();
       final result = await apiClient.detect(File(photo.path));
+      Map<String, dynamic>? cardDetails;
+      final detectedCardId = int.tryParse(result['card']?.toString() ?? '');
+      if (detectedCardId != null) {
+        cardDetails = await apiClient.card(detectedCardId);
+      }
       if (mounted) {
         setState(() => _isCapturing = false);
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => PostScanCategoriesScreen(
-                imagePath: photo.path, detectionResult: result),
+                imagePath: photo.path,
+                detectionResult: result,
+                cardDetails: cardDetails),
           ),
         );
       }

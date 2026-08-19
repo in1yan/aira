@@ -110,6 +110,10 @@ class ApiClient {
     return (result as List).cast<Map<String, dynamic>>();
   }
 
+  Future<Map<String, dynamic>> card(int cardId) async {
+    return (await _send('GET', '/cards/$cardId')) as Map<String, dynamic>;
+  }
+
   Future<List<Map<String, dynamic>>> cards({int? categoryId}) async {
     final path =
         categoryId == null ? '/cards' : '/cards?category_id=$categoryId';

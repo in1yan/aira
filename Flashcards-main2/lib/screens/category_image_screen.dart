@@ -4,12 +4,14 @@ class CategoryImageScreen extends StatelessWidget {
   final String categoryName;
   final IconData categoryIcon;
   final Color categoryColor;
+  final String? imageUrl;
 
   const CategoryImageScreen({
     super.key,
     required this.categoryName,
     required this.categoryIcon,
     required this.categoryColor,
+    this.imageUrl,
   });
 
   @override
@@ -47,46 +49,19 @@ class CategoryImageScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      categoryIcon,
-                      size: 72,
-                      color: const Color(0xFF424242).withOpacity(0.6),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+                child: imageUrl == null || imageUrl!.isEmpty
+                    ? Icon(categoryIcon,
+                        size: 72,
+                        color: const Color(0xFF424242).withOpacity(0.6))
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.network(imageUrl!,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Icon(categoryIcon,
+                                size: 72,
+                                color:
+                                    const Color(0xFF424242).withOpacity(0.6))),
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.image_outlined,
-                            size: 18,
-                            color: Color(0xFF757575),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Place image here',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF757575),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(height: 32),
               // Category name label
