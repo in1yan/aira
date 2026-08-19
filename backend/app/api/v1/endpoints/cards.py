@@ -20,6 +20,19 @@ router = APIRouter()
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp"}
 
+
+@router.get("/{card_id}", response_model=CardResponse)
+def get_card(card_id: int, db: Session = Depends(get_db)) -> Cards:
+    """Get a card by its ID."""
+    card = db.get(Cards, card_id)
+    if card is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Card not found",
+        )
+    return card
+
+
 @router.post("", response_model=CardResponse, status_code=status.HTTP_201_CREATED)
 async def create_card(
     name: str = Form(..., min_length=1, max_length=255),

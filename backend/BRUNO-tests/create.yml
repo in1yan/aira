@@ -4,34 +4,24 @@ info:
   seq: 5
 
 http:
-  method: post
+  method: POST
   url: http://localhost:8000/api/v1/cards
   headers:
     - name: accept
       value: application/json
     - name: Content-Type
-      value: application/json
+      value: multipart/form-data
   body:
-    type: json
-    data: "{\r
-
-      \  \"name\": \"string\",\r
-
-      \  \"is_published\": false,\r
-
-      \  \"card_image\": \"string\",\r
-
-      \  \"attributes\": [\r
-
-      \    {\r
-
-      \      \"attribute_image\": \"string\"\r
-
-      \    }\r
-
-      \  ]\r
-
-      }"
+    type: multipart-form
+    data:
+      - name: card_image
+        type: file
+        value:
+          - C:\Users\viniy\Downloads\page_6_card_1\page_6_card_2.jpg
+        contentType: image/jpeg
+      - name: name
+        type: text
+        value: cow
   auth: inherit
 
 settings:
