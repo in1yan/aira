@@ -6,6 +6,7 @@ import numpy as np
 
 
 TEMPLATE_DIR = Path("templates")
+DEFAULT_INDEX = Path("orb_index.npz")
 
 IMAGE_EXTENSIONS = {
   ".jpg",
@@ -20,12 +21,12 @@ class AnimalRecognizer:
 
   def __init__(
     self,
-    template_dir: Path,
+    template_dir: Path = TEMPLATE_DIR,
     nfeatures: int = 3000,
+    index_path: Path | None = None,
   ):
     self.template_dir = template_dir
 
-    # ORB feature detector
     self.orb = cv2.ORB_create(
       nfeatures=nfeatures,
       scaleFactor=1.2,
@@ -33,18 +34,20 @@ class AnimalRecognizer:
       fastThreshold=10,
     )
 
-    # BFMatcher for ORB's binary descriptors
     self.matcher = cv2.BFMatcher(
       cv2.NORM_HAMMING
     )
 
     self.templates = {}
 
-    self.load_templates()
+    if index_path is not None:
+      self.load_index(index_path)
+    else:
+      self.load_templates()
 
-  # ----------------------------------------------------------
-  # Load templates
-  # ----------------------------------------------------------
+  # ==========================================================
+  # LOAD TEMPLATES
+  # ==========================================================
 
   def load_templates(self):
 
@@ -106,7 +109,7 @@ class AnimalRecognizer:
       }
 
       print(
-        f"{animal:<20} "
+        f"{animal:<25} "
         f"{len(keypoints)} features"
       )
 
@@ -115,9 +118,134 @@ class AnimalRecognizer:
       f"{len(self.templates)} templates.\n"
     )
 
-  # ----------------------------------------------------------
-  # Match query image against one template
-  # ----------------------------------------------------------
+  # ==========================================================
+  # SAVE INDEX
+  # ==========================================================
+
+  def save_index(self, index_path: Path):
+
+    if not self.templates:
+      raise RuntimeError(
+        "No templates loaded. "
+        "Cannot create index."
+      )
+
+    arrays = {}
+
+    # Store the number of templates
+    arrays["template_count"] = np.array(
+      [len(self.templates)],
+      dtype=np.int32,
+    )
+
+    for index, (name, template) in enumerate(
+      self.templates.items()
+    ):
+
+      keypoints = template["keypoints"]
+      descriptors = template["descriptors"]
+
+      # Store template name
+      arrays[f"name_{index}"] = np.array(
+        name
+      )
+
+      # Store keypoint coordinates
+      points = np.array(
+        [kp.pt for kp in keypoints],
+        dtype=np.float32,
+      )
+
+      arrays[f"keypoints_{index}"] = points
+
+      # Store ORB descriptors
+      arrays[f"descriptors_{index}"] = (
+        descriptors
+      )
+
+    np.savez_compressed(
+      index_path,
+      **arrays,
+    )
+
+    print(
+      f"\nSaved descriptor index to:"
+      f"\n  {index_path}"
+    )
+
+    print(
+      f"Templates saved: "
+      f"{len(self.templates)}"
+    )
+
+  # ==========================================================
+  # LOAD INDEX
+  # ==========================================================
+
+  def load_index(self, index_path: Path):
+
+    if not index_path.exists():
+      raise FileNotFoundError(
+        f"Index file not found: "
+        f"{index_path}"
+      )
+
+    print(
+      f"Loading descriptor index:"
+      f"\n  {index_path}\n"
+    )
+
+    data = np.load(
+      index_path,
+      allow_pickle=False,
+    )
+
+    template_count = int(
+      data["template_count"][0]
+    )
+
+    for index in range(template_count):
+
+      name = str(
+        data[f"name_{index}"]
+      )
+
+      points = data[
+        f"keypoints_{index}"
+      ]
+
+      descriptors = data[
+        f"descriptors_{index}"
+      ]
+
+      # Reconstruct OpenCV KeyPoint objects
+      keypoints = [
+        cv2.KeyPoint(
+          float(x),
+          float(y),
+          1.0,
+        )
+        for x, y in points
+      ]
+
+      self.templates[name] = {
+        "keypoints": keypoints,
+        "descriptors": descriptors,
+      }
+
+      print(
+        f"{name:<25} "
+        f"{len(keypoints)} features"
+      )
+
+    print(
+      f"\nLoaded "
+      f"{len(self.templates)} templates.\n"
+    )
+
+  # ==========================================================
+  # MATCH TEMPLATE
+  # ==========================================================
 
   def match_template(
     self,
@@ -126,16 +254,11 @@ class AnimalRecognizer:
     template,
   ):
 
-    # KNN matching
     matches = self.matcher.knnMatch(
       query_descriptors,
       template["descriptors"],
       k=2,
     )
-
-    # --------------------------------------------------------
-    # Lowe's ratio test
-    # --------------------------------------------------------
 
     good_matches = []
 
@@ -149,17 +272,12 @@ class AnimalRecognizer:
       if first.distance < 0.70 * second.distance:
         good_matches.append(first)
 
-    # Homography requires at least 4 points
     if len(good_matches) < 4:
       return {
         "matches": len(good_matches),
         "inliers": 0,
         "ratio": 0.0,
       }
-
-    # --------------------------------------------------------
-    # Get coordinates of matched points
-    # --------------------------------------------------------
 
     query_points = np.float32([
       query_keypoints[
@@ -174,10 +292,6 @@ class AnimalRecognizer:
       ].pt
       for match in good_matches
     ])
-
-    # --------------------------------------------------------
-    # RANSAC homography
-    # --------------------------------------------------------
 
     try:
 
@@ -203,13 +317,10 @@ class AnimalRecognizer:
         "ratio": 0.0,
       }
 
-    # Number of geometrically consistent matches
     inliers = int(
       mask.ravel().sum()
     )
 
-    # Percentage of good matches that are
-    # geometrically consistent
     inlier_ratio = (
       inliers / len(good_matches)
     )
@@ -220,9 +331,9 @@ class AnimalRecognizer:
       "ratio": inlier_ratio,
     }
 
-  # ----------------------------------------------------------
-  # Recognize image
-  # ----------------------------------------------------------
+  # ==========================================================
+  # RECOGNIZE
+  # ==========================================================
 
   def recognize(
     self,
@@ -258,10 +369,6 @@ class AnimalRecognizer:
 
     scores = []
 
-    # --------------------------------------------------------
-    # Compare against every template
-    # --------------------------------------------------------
-
     for animal, template in (
       self.templates.items()
     ):
@@ -279,10 +386,6 @@ class AnimalRecognizer:
         "ratio": result["ratio"],
       })
 
-    # --------------------------------------------------------
-    # Sort by geometric consistency
-    # --------------------------------------------------------
-
     scores.sort(
       key=lambda result: (
         result["inliers"],
@@ -297,10 +400,6 @@ class AnimalRecognizer:
 
     best = scores[0]
 
-    # --------------------------------------------------------
-    # Reject weak matches
-    # --------------------------------------------------------
-
     if (
       best["inliers"] < min_inliers
       or best["ratio"] < min_ratio
@@ -309,97 +408,26 @@ class AnimalRecognizer:
 
     return best["animal"], scores
 
-  # ----------------------------------------------------------
-  # Draw matching result
-  # ----------------------------------------------------------
 
-  def save_match_visualization(
-    self,
-    image_path: Path,
-    animal: str,
-    output_path: Path,
-  ):
-
-    if animal not in self.templates:
-      return
-
-    query = cv2.imread(
-      str(image_path)
-    )
-
-    template = self.templates[animal]["image"]
-
-    query_gray = cv2.cvtColor(
-      query,
-      cv2.COLOR_BGR2GRAY
-    )
-
-    template_gray = cv2.cvtColor(
-      template,
-      cv2.COLOR_BGR2GRAY
-    )
-
-    query_kp, query_desc = (
-      self.orb.detectAndCompute(
-        query_gray,
-        None
-      )
-    )
-
-    template_kp, template_desc = (
-      self.orb.detectAndCompute(
-        template_gray,
-        None
-      )
-    )
-
-    matches = self.matcher.knnMatch(
-      query_desc,
-      template_desc,
-      k=2,
-    )
-
-    good_matches = []
-
-    for pair in matches:
-
-      if len(pair) != 2:
-        continue
-
-      first, second = pair
-
-      if first.distance < 0.70 * second.distance:
-        good_matches.append(first)
-
-    # Draw the best matches
-    visualization = cv2.drawMatches(
-      query,
-      query_kp,
-      template,
-      template_kp,
-      good_matches[:50],
-      None,
-      flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS,
-    )
-
-    cv2.imwrite(
-      str(output_path),
-      visualization,
-    )
-
+# ============================================================
+# CLI
+# ============================================================
 
 def main():
 
   parser = argparse.ArgumentParser(
     description=(
-      "Recognize a card using "
-      "ORB feature matching + RANSAC."
+      "ORB card recognition using "
+      "RANSAC + saved descriptors."
     )
   )
 
+  # Image is optional because --save-index
+  # doesn't require a query image.
   parser.add_argument(
     "image",
     type=Path,
+    nargs="?",
     help="Image containing the card",
   )
 
@@ -414,11 +442,30 @@ def main():
   )
 
   parser.add_argument(
+    "--save-index",
+    type=Path,
+    metavar="FILE",
+    help=(
+      "Extract features from templates "
+      "and save them to FILE"
+    ),
+  )
+
+  parser.add_argument(
+    "--load-index",
+    type=Path,
+    metavar="FILE",
+    help=(
+      "Load previously saved feature index"
+    ),
+  )
+
+  parser.add_argument(
     "--min-inliers",
     type=int,
     default=12,
     help=(
-      "Minimum number of RANSAC inliers "
+      "Minimum RANSAC inliers "
       "(default: 12)"
     ),
   )
@@ -443,29 +490,40 @@ def main():
     ),
   )
 
-  parser.add_argument(
-    "--visualize",
-    action="store_true",
-    help=(
-      "Save visualization of matched features"
-    ),
-  )
-
-  parser.add_argument(
-    "--output",
-    type=Path,
-    default=Path("orb_matches.jpg"),
-    help=(
-      "Visualization output path "
-      "(default: orb_matches.jpg)"
-    ),
-  )
-
   args = parser.parse_args()
 
-  # ----------------------------------------------------------
-  # Validate input
-  # ----------------------------------------------------------
+  # ==========================================================
+  # SAVE INDEX MODE
+  # ==========================================================
+
+  if args.save_index:
+
+    print()
+    print("=" * 60)
+    print("BUILDING ORB DESCRIPTOR INDEX")
+    print("=" * 60)
+    print()
+
+    recognizer = AnimalRecognizer(
+      template_dir=args.templates,
+      nfeatures=args.features,
+    )
+
+    recognizer.save_index(
+      args.save_index
+    )
+
+    return
+
+  # ==========================================================
+  # RECOGNITION MODE
+  # ==========================================================
+
+  if args.image is None:
+    parser.error(
+      "An image is required unless "
+      "--save-index is used."
+    )
 
   if not args.image.exists():
     parser.error(
@@ -473,34 +531,32 @@ def main():
     )
 
   # ----------------------------------------------------------
-  # Header
+  # Load from saved index
   # ----------------------------------------------------------
+
+  if args.load_index:
+
+    recognizer = AnimalRecognizer(
+      nfeatures=args.features,
+      index_path=args.load_index,
+    )
+
+  # ----------------------------------------------------------
+  # Load directly from templates
+  # ----------------------------------------------------------
+
+  else:
+
+    recognizer = AnimalRecognizer(
+      template_dir=args.templates,
+      nfeatures=args.features,
+    )
 
   print()
   print("=" * 60)
-  print("             CARD RECOGNITION")
+  print("CARD RECOGNITION")
   print("=" * 60)
   print()
-
-  print(f"Input     : {args.image}")
-  print(f"Templates : {args.templates}")
-  print(f"Features  : {args.features}")
-  print(f"Min inliers : {args.min_inliers}")
-  print(f"Min ratio   : {args.min_ratio}")
-  print()
-
-  # ----------------------------------------------------------
-  # Initialize recognizer
-  # ----------------------------------------------------------
-
-  recognizer = AnimalRecognizer(
-    template_dir=args.templates,
-    nfeatures=args.features,
-  )
-
-  # ----------------------------------------------------------
-  # Recognize
-  # ----------------------------------------------------------
 
   animal, scores = recognizer.recognize(
     args.image,
@@ -508,11 +564,6 @@ def main():
     min_ratio=args.min_ratio,
   )
 
-  # ----------------------------------------------------------
-  # Print results
-  # ----------------------------------------------------------
-
-  print()
   print("MATCH RESULTS")
   print("=" * 60)
 
@@ -536,10 +587,6 @@ def main():
 
   print("=" * 60)
 
-  # ----------------------------------------------------------
-  # Final result
-  # ----------------------------------------------------------
-
   print()
 
   if animal is None:
@@ -558,39 +605,19 @@ def main():
     )
 
     print(
-      f"Good matches : {best['matches']}"
+      f"Good matches : "
+      f"{best['matches']}"
     )
 
     print(
-      f"RANSAC inliers: {best['inliers']}"
+      f"RANSAC inliers: "
+      f"{best['inliers']}"
     )
 
     print(
-      f"Inlier ratio : {best['ratio']:.2%}"
+      f"Inlier ratio : "
+      f"{best['ratio']:.2%}"
     )
-
-  # ----------------------------------------------------------
-  # Optional visualization
-  # ----------------------------------------------------------
-
-  if (
-    args.visualize
-    and animal is not None
-  ):
-
-    recognizer.save_match_visualization(
-      args.image,
-      animal,
-      args.output,
-    )
-
-    print()
-    print(
-      f"Visualization saved to: "
-      f"{args.output}"
-    )
-
-  print()
 
 
 if __name__ == "__main__":
