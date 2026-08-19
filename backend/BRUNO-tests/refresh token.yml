@@ -1,0 +1,26 @@
+info:
+  name: refresh token
+  type: http
+  seq: 3
+
+http:
+  method: post
+  url: http://localhost:8000/api/v1/auth/refresh
+  headers:
+    - name: accept
+      value: application/json
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6InJlZnJlc2giLCJpYXQiOjE3ODY5ODc3ODgsImV4cCI6MTc4NzU5MjU4OH0.3wF1yNAVRqq_qdnssI068_s73d5rdL8rvJa7YoXhyWE"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

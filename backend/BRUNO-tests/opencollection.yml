@@ -1,0 +1,26 @@
+opencollection: 1.0.0
+
+info:
+  name: AIRA
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwidHlwZSI6ImFjY2VzcyIsImlhdCI6MTc4NzEyOTYzMSwiZXhwIjoxNzg3MTMxNDMxfQ.O4QZs7o_e_1-ebjRgqFQETDel17hMEjjnnXJCkVeDL8
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
