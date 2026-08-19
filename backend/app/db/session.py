@@ -36,6 +36,6 @@ def get_db() -> Generator[Session, None, None]:
 
 def init_db() -> None:
     """Create all tables. Import models so they register on Base.metadata."""
-    from app.models import card, card_attr, users  # noqa: F401
+    from app.models import card, card_attr, card_category, categories, users  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

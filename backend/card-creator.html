@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Card creator · AIRA</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111416;
+      --surface: #181c1f;
+      --surface-raised: #20262a;
+      --surface-soft: #15191b;
+      --line: #30383d;
+      --line-strong: #48545b;
+      --text: #edf1f2;
+      --muted: #9ca8ae;
+      --quiet: #6f7d83;
+      --accent: #9fc8d6;
+      --accent-strong: #c7ebf4;
+      --accent-ink: #13242a;
+      --success: #9ed4ad;
+      --danger: #f0a6a0;
+      --warning: #e5c68b;
+      --radius: 10px;
+      --focus: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent);
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--text);
+      background: var(--bg);
+      font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, textarea { font: inherit; }
+    button, input, textarea { color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: none; box-shadow: var(--focus); }
+    .skip-link { position: absolute; left: 1rem; top: -4rem; padding: .6rem .8rem; background: var(--accent); color: var(--accent-ink); z-index: 2; }
+    .skip-link:focus { top: 1rem; }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      padding: clamp(1.5rem, 5vw, 3.75rem) clamp(1.25rem, 7vw, 7rem) 1.5rem;
+    }
+    .eyebrow { margin: 0 0 .5rem; color: var(--accent); font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+    h1, h2, p { margin-top: 0; }
+    h1 { max-width: 680px; margin-bottom: .65rem; font-size: clamp(2rem, 5vw, 3.6rem); line-height: 1.02; letter-spacing: -.045em; font-weight: 650; }
+    .intro { max-width: 620px; margin-bottom: 0; color: var(--muted); }
+    main { width: min(1120px, calc(100% - 2.5rem)); margin: 0 auto; padding: 2rem 0 4rem; }
+
+    .setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(210px, .45fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .category-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1rem; align-items: end; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 1rem; }
+    .category-form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .65rem; align-items: end; }
+    .category-list { display: flex; flex-wrap: wrap; gap: .4rem; margin: .9rem 0 0; padding: 0; list-style: none; }
+    .category-list:empty { display: none; }
+    .category-chip { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid var(--line); border-radius: 999px; padding: .3rem .55rem .3rem .7rem; color: var(--muted); font-size: .78rem; }
+    .category-chip button { border: 0; background: transparent; color: var(--quiet); padding: 0 .1rem; }
+    .category-chip button:hover { color: var(--danger); }
+    .category-select { width: 100%; min-height: 42px; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); padding: .6rem .7rem; color: var(--text); }
+    .category-select:focus { border-color: var(--accent); outline: none; box-shadow: var(--focus); }
+    .review-controls { display: flex; align-items: center; gap: .6rem; }
+    .review-controls[hidden] { display: none; }
+    .review-index { color: var(--muted); font-size: .82rem; min-width: 5rem; text-align: center; }
+    .review-mode .card-row:not(.active-card) { display: none; }
+    .field { display: flex; flex-direction: column; gap: .45rem; }
+    label, legend { color: var(--text); font-size: .82rem; font-weight: 650; }
+    .hint { color: var(--quiet); font-size: .78rem; font-weight: 400; }
+    input[type="text"], input[type="password"], textarea {
+      width: 100%; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); padding: .72rem .8rem; transition: border-color .16s ease, background .16s ease;
+    }
+    input:hover, textarea:hover { border-color: var(--line-strong); }
+    input:focus, textarea:focus { border-color: var(--accent); background: var(--surface); outline: none; box-shadow: var(--focus); }
+    textarea { min-height: 76px; resize: vertical; }
+    .token-wrap { position: relative; }
+    .token-wrap input { padding-right: 4.5rem; }
+    .toggle-token { position: absolute; right: .35rem; top: .35rem; padding: .35rem .5rem; border: 0; border-radius: 5px; background: transparent; color: var(--accent); font-size: .75rem; }
+
+    .drop-zone { border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface-soft); padding: clamp(1.4rem, 4vw, 2.4rem); text-align: center; transition: border-color .16s ease, background .16s ease; }
+    .drop-zone.is-over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface-soft)); }
+    .drop-zone strong { display: block; margin-bottom: .3rem; font-size: 1rem; }
+    .drop-zone p { margin: 0 0 1rem; color: var(--muted); }
+    input[type="file"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .file-button, .secondary, .primary { display: inline-flex; align-items: center; justify-content: center; min-height: 2.6rem; border-radius: 7px; padding: .6rem 1rem; font-weight: 700; transition: transform .16s ease, background .16s ease, border-color .16s ease; }
+    .file-button, .secondary { border: 1px solid var(--line-strong); background: var(--surface-raised); color: var(--text); }
+    .file-button:hover, .secondary:hover { border-color: var(--accent); background: #283136; }
+    .primary { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); }
+    .primary:hover { background: var(--accent-strong); transform: translateY(-1px); }
+    .primary:disabled, .secondary:disabled { cursor: not-allowed; opacity: .5; transform: none; }
+
+    .queue-header { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: 2rem 0 .8rem; }
+    h2 { margin-bottom: 0; font-size: 1.1rem; letter-spacing: -.01em; }
+    .queue-count { color: var(--muted); font-size: .82rem; }
+    .queue { display: grid; gap: .7rem; }
+    .empty { border: 1px solid var(--line); border-radius: var(--radius); padding: 2.4rem 1rem; color: var(--muted); text-align: center; background: var(--surface); }
+    .card-row { display: grid; grid-template-columns: 116px minmax(0, 1fr) auto; gap: 1rem; align-items: start; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: .8rem; animation: appear .22s ease-out both; }
+    .preview { width: 116px; aspect-ratio: 1; border-radius: 6px; background: #0d1011; object-fit: cover; }
+    .card-fields { display: grid; grid-template-columns: minmax(180px, 1fr) 150px; gap: .75rem; }
+    .attribute-field { grid-column: 1 / -1; }
+    .attribute-picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; }
+    .attribute-slot { display: flex; flex-direction: column; gap: .35rem; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-soft); padding: .55rem; }
+    .attribute-slot .file-button { min-height: 2.2rem; padding: .45rem .65rem; font-size: .78rem; }
+    .attribute-slot.has-file { border-color: color-mix(in srgb, var(--accent) 65%, var(--line)); }
+    .attribute-file-name { overflow: hidden; color: var(--muted); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 700px) { .attribute-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .checkbox { display: flex; align-items: center; gap: .55rem; min-height: 42px; color: var(--muted); }
+    .checkbox input { width: 1rem; height: 1rem; accent-color: var(--accent); }
+    .row-side { display: flex; flex-direction: column; align-items: end; gap: .65rem; min-width: 100px; }
+    .file-name { max-width: 150px; overflow: hidden; color: var(--muted); font-size: .74rem; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+    .remove { border: 0; background: transparent; color: var(--quiet); padding: .4rem; }
+    .remove:hover { color: var(--danger); }
+    .status { margin: 0; color: var(--quiet); font-size: .78rem; text-align: right; }
+    .status.success { color: var(--success); }
+    .status.error { color: var(--danger); }
+    .actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+    .notice { min-height: 1.5rem; color: var(--muted); font-size: .82rem; }
+    .notice.error { color: var(--danger); }
+    .notice.success { color: var(--success); }
+    kbd { border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 4px; padding: .08rem .3rem; color: var(--muted); font-size: .7rem; }
+    @keyframes appear { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    @media (max-width: 700px) {
+      main { width: min(100% - 1.5rem, 600px); }
+      .setup, .category-bar, .category-form, .card-fields { grid-template-columns: 1fr; }
+      .attribute-field { grid-column: auto; }
+      .card-row { grid-template-columns: 72px minmax(0, 1fr); }
+      .preview { width: 72px; }
+      .row-side { grid-column: 2; flex-direction: row; justify-content: space-between; align-items: center; width: 100%; }
+      .file-name { max-width: 220px; text-align: left; }
+      .actions { align-items: stretch; flex-direction: column-reverse; }
+      .actions .primary { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#cards">Skip to card queue</a>
+  <header>
+    <p class="eyebrow">AIRA / development utility</p>
+    <h1>Create cards without leaving your browser.</h1>
+    <p class="intro">Choose a batch of images, fill in the details for each one, then send them to your API one at a time.</p>
+  </header>
+
+  <main id="content">
+    <section aria-labelledby="connection-title">
+      <div class="queue-header"><h2 id="connection-title">Connection</h2><span class="queue-count">All fields are local to this page</span></div>
+      <div class="setup">
+        <div class="field">
+          <label for="endpoint">Request URL</label>
+          <input id="endpoint" type="text" value="http://localhost:8000/api/v1/cards" autocomplete="url" spellcheck="false">
+          <span class="hint">The card endpoint that accepts a multipart POST request.</span>
+        </div>
+        <div class="field">
+          <label for="token">Admin Bearer token <span class="hint">optional</span></label>
+          <div class="token-wrap"><input id="token" type="password" placeholder="Paste access token" autocomplete="off" spellcheck="false"><button class="toggle-token" type="button" aria-label="Show token" aria-pressed="false">Show</button></div>
+          <span class="hint">Sent as <code>Authorization: Bearer …</code>.</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="categories-title">
+      <div class="queue-header"><h2 id="categories-title">Categories</h2><span class="queue-count">Create reusable groups for your cards</span></div>
+      <div class="category-bar">
+        <div>
+          <form class="category-form" id="category-form">
+            <div class="field"><label for="category-name">New category</label><input id="category-name" type="text" maxlength="255" placeholder="e.g. Orientation week" required></div>
+            <label class="checkbox"><input id="category-published" type="checkbox"> Publish now</label>
+            <button class="secondary" type="submit">Create category</button>
+          </form>
+          <ul class="category-list" id="category-list" aria-live="polite"></ul>
+        </div>
+        <p class="hint">Categories can be assigned below.</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="images-title">
+      <div class="queue-header"><h2 id="images-title">Images</h2><span class="queue-count" id="queue-count">0 selected</span></div>
+      <div class="drop-zone" id="drop-zone">
+        <strong>Drop card images here</strong>
+        <p>or choose several files at once · JPG, PNG, GIF, WEBP, BMP</p>
+        <label class="file-button" for="image-picker">Choose images</label>
+        <input id="image-picker" type="file" accept="image/*" multiple>
+      </div>
+    </section>
+
+    <section id="cards" aria-labelledby="queue-title">
+      <div class="queue-header"><h2 id="queue-title">Card queue</h2><div class="review-controls" id="review-controls" hidden><button class="secondary" id="list-mode" type="button">Show all</button><button class="secondary" id="previous-card" type="button" aria-label="Previous card">←</button><span class="review-index" id="review-index">1 / 1</span><button class="secondary" id="next-card" type="button" aria-label="Next card">→</button></div><span class="queue-count" id="queue-help">Tab through each card to edit it</span></div>
+      <div class="queue" id="queue" aria-live="polite"><div class="empty" id="empty-state">Your selected images will appear here with their own card details.</div></div>
+      <div class="actions">
+        <p class="notice" id="notice" role="status"></p>
+        <button class="primary" id="submit" type="button" disabled>Submit cards <kbd>Ctrl ↵</kbd></button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const picker = document.querySelector('#image-picker');
+    const dropZone = document.querySelector('#drop-zone');
+    const queue = document.querySelector('#queue');
+    const emptyState = document.querySelector('#empty-state');
+    const submitButton = document.querySelector('#submit');
+    const count = document.querySelector('#queue-count');
+    const notice = document.querySelector('#notice');
+    const items = [];
+    let categories = [];
+    let categoryCacheKey = '';
+    let categoryRequest = null;
+    let reviewMode = false;
+    let currentIndex = 0;
+    const ATTRIBUTE_TYPES = ['group', 'association', 'location', 'function', 'action', 'properties'];
+
+    function setNotice(message = '', type = '') { notice.textContent = message; notice.className = `notice ${type}`; }
+    function authHeaders(json = false) {
+      const headers = json ? { 'Content-Type': 'application/json' } : {};
+      const token = document.querySelector('#token').value.trim().replace(/^Bearer\s+/i, '');
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return headers;
+    }
+    function categoryEndpoint() {
+      const endpoint = document.querySelector('#endpoint').value.trim();
+      return endpoint.replace(/\/cards\/?(?:\?.*)?$/, '/categories');
+    }
+    function escapeHtml(value) { return String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char])); }
+
+    async function loadCategories(showError = false, force = false) {
+      const endpoint = categoryEndpoint();
+      const token = document.querySelector('#token').value.trim().replace(/^Bearer\s+/i, '');
+      if (!token) {
+        if (showError) setNotice('Enter an admin bearer token to load categories.', 'error');
+        return;
+      }
+      const cacheKey = `${endpoint}|${token}`;
+      if (!force && categoryCacheKey === cacheKey) {
+        renderCategories();
+        return;
+      }
+      if (!force && categoryRequest) return categoryRequest;
+      categoryRequest = (async () => {
+        try {
+          const response = await fetch(endpoint, { headers: authHeaders() });
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          categories = await response.json();
+          categoryCacheKey = cacheKey;
+          renderCategories();
+          if (items.length) render();
+        } catch (error) {
+          if (showError) setNotice(`Could not load categories: ${error.message}`, 'error');
+        } finally {
+          categoryRequest = null;
+        }
+      })();
+      return categoryRequest;
+    }
+    function renderCategories() {
+      document.querySelector('#category-list').innerHTML = categories.map(category => `<li class="category-chip"><span>${escapeHtml(category.name)}${category.is_published ? '' : ' · draft'}</span><button type="button" data-category-id="${category.id}" aria-label="Delete ${escapeHtml(category.name)}">×</button></li>`).join('');
+      document.querySelectorAll('[data-category-id]').forEach(button => button.addEventListener('click', () => deleteCategory(Number(button.dataset.categoryId))));
+    }
+    async function createCategory(event) {
+      event.preventDefault();
+      const name = document.querySelector('#category-name').value.trim();
+      if (!name) return;
+      try {
+        const response = await fetch(categoryEndpoint(), { method: 'POST', headers: authHeaders(true), body: JSON.stringify({ name, is_published: document.querySelector('#category-published').checked }) });
+        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).detail || `HTTP ${response.status}`);
+        const category = await response.json();
+        categories = [...categories, category].sort((left, right) => left.name.localeCompare(right.name));
+        renderCategories();
+        document.querySelector('#category-form').reset();
+        setNotice(`Category “${name}” created.`, 'success');
+      } catch (error) { setNotice(`Could not create category: ${error.message}`, 'error'); }
+    }
+    async function deleteCategory(id) {
+      const category = categories.find(item => item.id === id);
+      if (!category || !confirm(`Delete “${category.name}”? Cards will be kept.`)) return;
+      try {
+        const response = await fetch(`${categoryEndpoint()}/${id}`, { method: 'DELETE', headers: authHeaders() });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        items.forEach(item => item.categoryIds = item.categoryIds.filter(categoryId => categoryId !== id));
+        categories = categories.filter(categoryItem => categoryItem.id !== id);
+        renderCategories();
+        setNotice('Category deleted.');
+      } catch (error) { setNotice(`Could not delete category: ${error.message}`, 'error'); }
+    }
+
+    function addFiles(files) {
+      [...files].filter(file => file.type.startsWith('image/')).forEach(file => items.push({ file, name: file.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' '), published: false, categoryIds: [], attributeFiles: {}, state: 'Ready' }));
+      render();
+      if (items.length) setNotice(`${items.length} card${items.length === 1 ? '' : 's'} ready to review.`);
+    }
+    function render() {
+      queue.querySelectorAll('.card-row').forEach(node => node.remove());
+      emptyState.hidden = items.length > 0;
+      count.textContent = `${items.length} selected`;
+      submitButton.disabled = items.length === 0 || items.every(item => item.state === 'Sending');
+      queue.classList.toggle('review-mode', reviewMode);
+      document.querySelector('#review-controls').hidden = items.length === 0;
+      document.querySelector('#review-index').textContent = items.length ? `${currentIndex + 1} / ${items.length}` : '0 / 0';
+      items.forEach((item, index) => {
+        const row = document.createElement('article');
+        row.className = `card-row ${reviewMode && index === currentIndex ? 'active-card' : ''}`;
+        const attributeControls = ATTRIBUTE_TYPES.map(type => { const file = item.attributeFiles[type]; const id = `attribute-${type}-${index}`; return `<div class="attribute-slot ${file ? 'has-file' : ''}"><label for="${id}">${type}</label><label class="file-button" for="${id}">${file ? 'Replace image' : 'Choose image'}</label><input id="${id}" type="file" accept="image/*"><span class="attribute-file-name" title="${file ? escapeHtml(file.name) : ''}">${file ? escapeHtml(file.name) : 'No image selected'}</span></div>`; }).join('');
+        row.innerHTML = `<img class="preview" alt="Preview of ${escapeHtml(item.file.name)}" src="${URL.createObjectURL(item.file)}"><div class="card-fields"><div class="field"><label for="name-${index}">Card name <span class="hint">required</span></label><input id="name-${index}" type="text" value="${escapeHtml(item.name)}" required maxlength="255"></div><label class="checkbox" for="published-${index}"><input id="published-${index}" type="checkbox" ${item.published ? 'checked' : ''}> Publish now</label><div class="field"><label for="categories-${index}">Categories <span class="hint">optional · multiple allowed</span></label><select class="category-select" id="categories-${index}" multiple size="${Math.min(Math.max(categories.length, 2), 5)}">${categories.map(category => `<option value="${category.id}" ${item.categoryIds.includes(category.id) ? 'selected' : ''}>${escapeHtml(category.name)}</option>`).join('')}</select></div><div class="field attribute-field"><label>Attribute images <span class="hint">optional · choose up to six, one per attribute</span></label><div class="attribute-picker">${attributeControls}</div><span class="hint">Each selected image is sent with its named attribute.</span></div></div><div class="row-side"><span class="file-name" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</span><button class="remove" type="button" aria-label="Remove ${escapeHtml(item.file.name)}">Remove</button><p class="status ${item.statusType || ''}" role="status">${escapeHtml(item.state)}</p></div>`;
+        row.querySelector(`#name-${index}`).addEventListener('input', event => item.name = event.target.value);
+        row.querySelector(`#published-${index}`).addEventListener('change', event => item.published = event.target.checked);
+        row.querySelector(`#categories-${index}`).addEventListener('change', event => item.categoryIds = [...event.target.selectedOptions].map(option => Number(option.value)));
+        ATTRIBUTE_TYPES.forEach(type => row.querySelector(`#attribute-${type}-${index}`).addEventListener('change', event => { const file = [...event.target.files].find(candidate => candidate.type.startsWith('image/')); if (file) item.attributeFiles[type] = file; render(); }));
+        row.querySelector('.remove').addEventListener('click', () => { items.splice(index, 1); currentIndex = Math.min(currentIndex, Math.max(items.length - 1, 0)); render(); setNotice('Card removed.'); });
+        queue.appendChild(row);
+      });
+    }
+    function moveReview(step) { if (!items.length) return; reviewMode = true; currentIndex = (currentIndex + step + items.length) % items.length; render(); queue.querySelector(`#name-${currentIndex}`)?.focus(); }
+
+    async function submitCards() {
+      const endpoint = document.querySelector('#endpoint').value.trim();
+      if (!endpoint) return setNotice('Enter a request URL first.', 'error');
+      if (!items.length) return setNotice('Choose at least one image first.', 'error');
+      let parsedUrl; try { parsedUrl = new URL(endpoint); } catch { return setNotice('Enter a valid request URL.', 'error'); }
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) return setNotice('The request URL must use HTTP or HTTPS.', 'error');
+      submitButton.disabled = true; let completed = 0;
+      for (const item of items) {
+        if (item.state === 'Created') { completed++; continue; }
+        if (!item.name.trim()) { item.state = 'Card name is required'; item.statusType = 'error'; render(); continue; }
+        item.state = 'Sending'; item.statusType = ''; render();
+        const form = new FormData(); form.append('name', item.name.trim()); form.append('is_published', String(item.published)); form.append('card_image', item.file, item.file.name);
+        const selectedAttributes = ATTRIBUTE_TYPES.filter(type => item.attributeFiles[type]);
+        if (selectedAttributes.length) {
+          form.append('attributes', JSON.stringify(selectedAttributes.map(attribute_type => ({ attribute_type }))));
+          selectedAttributes.forEach(attribute_type => { const file = item.attributeFiles[attribute_type]; form.append('attribute_images', file, file.name); });
+        }
+        if (item.categoryIds.length) form.append('category_ids', JSON.stringify(item.categoryIds));
+        try {
+          const response = await fetch(endpoint, { method: 'POST', headers: authHeaders(), body: form });
+          if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.detail || `HTTP ${response.status}`); }
+          item.state = 'Created'; item.statusType = 'success'; completed++;
+        } catch (error) { item.state = error.message || 'Request failed'; item.statusType = 'error'; }
+        render();
+      }
+      submitButton.disabled = false;
+      setNotice(completed === items.length ? `Done — ${completed} card${completed === 1 ? '' : 's'} created.` : `${completed} of ${items.length} cards created. Fix errors and submit again.`, completed === items.length ? 'success' : 'error');
+    }
+
+    picker.addEventListener('change', event => { addFiles(event.target.files); picker.value = ''; });
+    ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.add('is-over'); }));
+    ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => { event.preventDefault(); dropZone.classList.remove('is-over'); }));
+    dropZone.addEventListener('drop', event => addFiles(event.dataTransfer.files));
+    submitButton.addEventListener('click', submitCards);
+    document.querySelector('#category-form').addEventListener('submit', createCategory);
+    document.querySelector('#list-mode').addEventListener('click', () => { reviewMode = false; render(); });
+    document.querySelector('#previous-card').addEventListener('click', () => moveReview(-1));
+    document.querySelector('#next-card').addEventListener('click', () => moveReview(1));
+    document.addEventListener('keydown', event => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); if (!submitButton.disabled) submitCards(); }
+      if (reviewMode && (event.key === 'ArrowRight' || event.key === 'ArrowLeft') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) { event.preventDefault(); moveReview(event.key === 'ArrowRight' ? 1 : -1); }
+    });
+    document.querySelector('.toggle-token').addEventListener('click', event => { const token = document.querySelector('#token'); const visible = token.type === 'text'; token.type = visible ? 'password' : 'text'; event.currentTarget.textContent = visible ? 'Show' : 'Hide'; event.currentTarget.setAttribute('aria-pressed', String(!visible)); event.currentTarget.setAttribute('aria-label', visible ? 'Show token' : 'Hide token'); });
+    document.querySelector('#endpoint').addEventListener('change', () => { categoryCacheKey = ''; loadCategories(true, true); });
+    document.querySelector('#token').addEventListener('change', () => { categoryCacheKey = ''; loadCategories(true, true); });
+  </script>
+</body>
+</html>

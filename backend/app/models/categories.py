@@ -1,9 +1,15 @@
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.models.card_category import card_categories
 
 from app.db.session import Base
+
+if TYPE_CHECKING:
+    from app.models.card import Cards
 
 
 class Categories(Base):
@@ -20,6 +26,9 @@ class Categories(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+    )
+    cards: Mapped[list["Cards"]] = relationship(
+        secondary=card_categories, back_populates="categories"
     )
 
     def __repr__(self) -> str:

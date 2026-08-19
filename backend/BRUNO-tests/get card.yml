@@ -5,7 +5,7 @@ info:
 
 http:
   method: get
-  url: http://localhost:8000/api/v1/cards/1
+  url: http://localhost:8000/api/v1/cards/7
   headers:
     - name: accept
       value: application/json

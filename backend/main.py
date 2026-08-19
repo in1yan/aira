@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Callable, cast
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -31,6 +33,13 @@ app = FastAPI(
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
+)
+
+
+app.mount(
+    "/static/card-images",
+    StaticFiles(directory=Path(settings.CARD_TEMPLATE_DIR) / "images", check_dir=False),
+    name="card-images",
 )
 
 

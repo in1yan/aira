@@ -15,6 +15,7 @@ class CardAttributes(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True, index=True)
     card_id: Mapped[int] = mapped_column(ForeignKey("cards.id", ondelete="CASCADE"), nullable=False, index=True)
+    attribute_type: Mapped[str | None] = mapped_column(String(50), nullable=True, default="properties")
     attribute_image: Mapped[str | None] = mapped_column(String(500), default=None)
     card: Mapped["Cards"] = relationship(back_populates="attributes")
     created_at: Mapped[datetime] = mapped_column(

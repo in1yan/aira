@@ -17,7 +17,7 @@ http:
       - name: image
         type: file
         value:
-          - C:\Users\viniy\Downloads\IMG_20260819_153212.jpg
+          - C:\Users\viniy\Downloads\IMG_20260819_152946.jpg
         contentType: image/jpeg
   auth: inherit
 
