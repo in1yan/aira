@@ -146,7 +146,6 @@ cython_debug/
 # Project specific
 uploads/
 logs/
-*.db
 *.sqlite
 
 # Alembic
