@@ -28,7 +28,6 @@ aira/
 │   │   └── services/
 │   │       ├── vision_service.py  # ORB Descriptor & Histogram Vision Matcher
 │   │       └── tts_service.py     # gTTS Speech Generator
-│   ├── requirements.txt
 │   └── run.py                     # Unified Backend Runner
 │
 ├── admin/
@@ -52,15 +51,23 @@ aira/
 │       ├── images/                # Trigger & Attribute Images
 │       └── audio/                 # Generated Multilingual Audio Clips
 │
+├── requirements.txt               # Consolidated Python dependencies for the entire backend
 ├── run_all.py                     # Master launcher to start the unified backend server
 └── README.md
 ```
 
 ---
 
-## 🚀 Running the Project
+## 🚀 Installation & Running the Project
 
-### Option 1: Run Unified Backend with Master Launcher
+### 1. Install Backend Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### 2. Run Unified Backend
 From the root directory:
 ```bash
 python run_all.py
@@ -69,9 +76,7 @@ python run_all.py
 - **Mobile User API**: `http://127.0.0.1:8000/api`
 - **Interactive Swagger Docs**: `http://127.0.0.1:8000/docs`
 
----
-
-### Option 2: Run Backend Directory Directly
+Alternatively, you can run directly from the `backend/` directory:
 ```bash
 cd backend
 python run.py
@@ -79,7 +84,7 @@ python run.py
 
 ---
 
-### Option 3: Run Flutter Mobile App
+### 3. Run Flutter Mobile App
 ```bash
 cd user/frontend
 flutter run
