@@ -1,0 +1,227 @@
+# ==============================================================================
+# Environment & Secrets
+# ==============================================================================
+.env
+.env.*
+*.env
+!.env.example
+!.env.template
+*.pem
+*.key
+*.cert
+*.crt
+
+# ==============================================================================
+# Python (FastAPI Backends, Scripts, Virtualenvs, Caches)
+# ==============================================================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging / build artifacts
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.uv_cache/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+htmlcov/
+.tox/
+.nox/
+
+# Type checking / Linters
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# ==============================================================================
+# Flutter & Dart (Mobile App)
+# ==============================================================================
+# Flutter / Dart tooling & builds
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.pub-cache/
+**/.pub/
+**/build/
+**/coverage/
+**/.widget_preview/
+
+# Flutter documentation
+**/doc/api/
+
+# Flutter symbolication / obfuscation
+app.*.symbols
+app.*.map.json
+
+# Flutter Android platform
+**/.gradle/
+**/local.properties
+**/captures/
+**/gradle-wrapper.jar
+**/gradlew
+**/gradlew.bat
+**/GeneratedPluginRegistrant.java
+**/.cxx/
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/**/generated/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+**/key.properties
+**/*.keystore
+**/*.jks
+
+# Flutter iOS / macOS platform
+**/ios/Flutter/.last_build_id
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Flutter/ephemeral/
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/DerivedData/
+**/.xcode/
+*.ipa
+*.mode1v3
+*.mode2v3
+*.moved-aside
+*.pbxuser
+*.perspectivev3
+
+# Flutter Windows / Linux / Desktop
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+**/ephemeral/
+**/x64/
+**/x86/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.[Cc]ache
+!*.[Cc]ache/
+
+# ==============================================================================
+# Node.js & Web (Admin Frontend)
+# ==============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.npm
+
+# ==============================================================================
+# Databases & Shared Media / Runtime Storage
+# ==============================================================================
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Generated / runtime card uploads and audio files (preserve directory structures)
+shared/uploads/images/*
+!shared/uploads/images/.gitkeep
+shared/uploads/audio/*
+!shared/uploads/audio/.gitkeep
+shared/data/*
+!shared/data/.gitkeep
+
+# Machine learning / ORB descriptor index dumps
+*.npz
+
+# ==============================================================================
+# IDEs, Editors & OS Files
+# ==============================================================================
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (IntelliJ, Android Studio, PyCharm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# General Logs & Temporary files
+*.log
+logs/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.history/
