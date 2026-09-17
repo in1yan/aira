@@ -1,9 +1,14 @@
 import os
+import io
+import json
 import uuid
+import zipfile
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from ..database import get_db, IMAGES_DIR
+from ..database import get_db, IMAGES_DIR, AUDIO_DIR, DB_PATH, DATA_DIR
 from ..models import Card, Category, User, CardAttribute
 from ..schemas import AdminStatsResponse, UserAdminResponse, UserRoleUpdate
 
@@ -84,3 +89,182 @@ async def upload_card_image(file: UploadFile = File(...)):
         "filename": unique_filename,
         "image_url": f"/static/images/{unique_filename}"
     }
+
+def _generate_visual_context_manifest(db: Session) -> dict:
+    categories = db.query(Category).all()
+    cards = db.query(Card).all()
+    users = db.query(User).all()
+
+    cats_data = [
+        {
+            "id": c.id,
+            "name_en": c.name_en,
+            "name_ta": c.name_ta,
+            "name_hi": c.name_hi,
+            "name_ml": c.name_ml,
+            "description": c.description,
+            "icon_name": c.icon_name,
+            "color_hex": c.color_hex,
+        }
+        for c in categories
+    ]
+
+    cards_data = []
+    for card in cards:
+        attrs = db.query(CardAttribute).filter(CardAttribute.card_id == card.id).all()
+        attr_list = [
+            {
+                "key": a.key,
+                "label": a.label,
+                "value_en": a.value_en,
+                "value_ta": a.value_ta,
+                "value_hi": a.value_hi,
+                "value_ml": a.value_ml,
+                "image_url": a.image_url,
+                "image_filename": os.path.basename(a.image_url) if a.image_url else None
+            }
+            for a in attrs
+        ]
+
+        cards_data.append({
+            "id": card.id,
+            "category_id": card.category_id,
+            "category_name": card.category.name_en if card.category else None,
+            "subcategory": card.subcategory,
+            "title_en": card.title_en,
+            "title_ta": card.title_ta,
+            "title_hi": card.title_hi,
+            "title_ml": card.title_ml,
+            "trigger_image_url": card.image_url,
+            "trigger_image_filename": os.path.basename(card.image_url) if card.image_url else None,
+            "is_published": card.is_published,
+            "attributes_visual_context": attr_list
+        })
+
+    return {
+        "export_metadata": {
+            "application": "Aira Smart Flash Cards",
+            "version": "2.0.0",
+            "exported_at": datetime.utcnow().isoformat() + "Z",
+            "total_categories": len(cats_data),
+            "total_cards": len(cards_data),
+            "total_users": len(users)
+        },
+        "categories": cats_data,
+        "cards": cards_data
+    }
+
+@router.get("/export/bundle")
+def export_database_bundle(db: Session = Depends(get_db)):
+    """
+    Exports a comprehensive ZIP archive containing:
+    1. SQLite Database (`data/aira.db`)
+    2. All Visual Context Images (`images/*`)
+    3. Audio Pronunciations (`audio/*`)
+    4. Visual Context JSON Manifest (`visual_context_manifest.json`)
+    5. Dataset Documentation (`README.txt`)
+    """
+    manifest_data = _generate_visual_context_manifest(db)
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        # 1. Add SQLite Database file
+        if os.path.exists(DB_PATH):
+            zip_file.write(DB_PATH, arcname="data/aira.db")
+
+        # 2. Add Visual Context Manifest JSON
+        manifest_json_str = json.dumps(manifest_data, indent=2, ensure_ascii=False)
+        zip_file.writestr("visual_context_manifest.json", manifest_json_str)
+
+        # 3. Add Images (Trigger images & 6-concept attribute images)
+        if os.path.exists(IMAGES_DIR):
+            for root, _, files in os.walk(IMAGES_DIR):
+                for f in files:
+                    file_full_path = os.path.join(root, f)
+                    arc_path = os.path.join("images", f)
+                    zip_file.write(file_full_path, arcname=arc_path)
+
+        # 4. Add Audio files
+        if os.path.exists(AUDIO_DIR):
+            for root, _, files in os.walk(AUDIO_DIR):
+                for f in files:
+                    file_full_path = os.path.join(root, f)
+                    arc_path = os.path.join("audio", f)
+                    zip_file.write(file_full_path, arcname=arc_path)
+
+        # 5. Add README documentation inside the archive
+        readme_content = f"""========================================================================
+  AIRA SMART FLASHCARDS - DATABASE & VISUAL CONTEXT DATASET
+========================================================================
+
+Exported At: {manifest_data["export_metadata"]["exported_at"]}
+Total Flashcards: {manifest_data["export_metadata"]["total_cards"]}
+Total Categories: {manifest_data["export_metadata"]["total_categories"]}
+
+PACKAGE CONTENTS:
+-----------------
+1. data/aira.db
+   - Full SQLite 3 relational database containing users, categories,
+     cards, and the 6 cognitive dimension attributes.
+
+2. visual_context_manifest.json
+   - Complete JSON dataset describing all flashcards with their 4-language
+     labels (English, Tamil, Hindi, Malayalam), trigger images, and 6-concept
+     visual attributes (Group, Use, Action, Location, Association, Properties).
+
+3. images/
+   - Visual context image assets including card trigger images used for
+     computer vision recognition and dimension attribute graphics.
+
+4. audio/
+   - Multilingual synthesized speech clips (gTTS MP3 files).
+
+========================================================================
+"""
+        zip_file.writestr("README.txt", readme_content)
+
+    zip_buffer.seek(0)
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    filename = f"aira_db_with_visual_context_{timestamp}.zip"
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+@router.get("/export/db")
+def export_raw_db():
+    """
+    Directly downloads the raw SQLite database file (`aira.db`).
+    """
+    if not os.path.exists(DB_PATH):
+        raise HTTPException(status_code=404, detail="Database file not found.")
+    
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    return FileResponse(
+        DB_PATH,
+        media_type="application/x-sqlite3",
+        filename=f"aira_{timestamp}.db"
+    )
+
+@router.get("/export/json")
+def export_visual_context_json(db: Session = Depends(get_db)):
+    """
+    Directly returns the Visual Context JSON manifest.
+    """
+    manifest_data = _generate_visual_context_manifest(db)
+    json_bytes = json.dumps(manifest_data, indent=2, ensure_ascii=False).encode('utf-8')
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    
+    return StreamingResponse(
+        io.BytesIO(json_bytes),
+        media_type="application/json",
+        headers={
+            "Content-Disposition": f'attachment; filename="aira_visual_context_{timestamp}.json"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )

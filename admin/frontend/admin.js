@@ -856,6 +856,75 @@ function showToast(message, type = 'success') {
   }, 3500);
 }
 
+// DATABASE & VISUAL CONTEXT EXPORT ACTIONS
+async function downloadDatabaseBundle() {
+  const btn = document.getElementById('btnDownloadBundle');
+  const originalText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Preparing ZIP Package...';
+  }
+  showToast('Generating complete Database & Visual Context ZIP package...', 'success');
+
+  try {
+    const res = await fetch('/api/admin/export/bundle');
+    if (!res.ok) {
+      throw new Error(`Export failed: ${res.statusText}`);
+    }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+
+    // Get filename from header or fallback
+    const disposition = res.headers.get('Content-Disposition');
+    let filename = 'aira_db_with_visual_context.zip';
+    if (disposition && disposition.indexOf('filename=') !== -1) {
+      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+      if (matches != null && matches[1]) {
+        filename = matches[1].replace(/['"]/g, '');
+      }
+    }
+
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+
+    showToast('Download started: ' + filename, 'success');
+  } catch (err) {
+    showToast('Failed to download bundle: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  }
+}
+
+function downloadRawDb() {
+  showToast('Downloading SQLite database (aira.db)...', 'success');
+  const a = document.createElement('a');
+  a.href = '/api/admin/export/db';
+  a.download = 'aira.db';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
+function downloadJsonExport() {
+  showToast('Downloading Visual Context JSON manifest...', 'success');
+  const a = document.createElement('a');
+  a.href = '/api/admin/export/json';
+  a.download = 'aira_visual_context.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)

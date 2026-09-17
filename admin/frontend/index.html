@@ -54,6 +54,11 @@
           <i class="fa-solid fa-camera-viewfinder"></i>
           <span>AI Card Scanner Test</span>
         </a>
+        <a href="javascript:void(0)" class="nav-item" onclick="openModal('exportModal')">
+          <i class="fa-solid fa-cloud-arrow-down"></i>
+          <span>Download DB & Context</span>
+          <span class="nav-badge" style="background:rgba(76,175,80,0.2); color:#4CAF50;">ZIP</span>
+        </a>
 
         <div class="nav-section-title">EXTERNAL & API</div>
         <a href="/docs" target="_blank" class="nav-item">
@@ -90,6 +95,10 @@
           <button class="btn btn-secondary" onclick="loadDashboardData()" title="Reload Data">
             <i class="fa-solid fa-rotate"></i>
             <span>Refresh</span>
+          </button>
+          <button class="btn btn-export" onclick="openModal('exportModal')" title="Download Database with Visual Context">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+            <span>Export DB + Media</span>
           </button>
           <button class="btn btn-primary" onclick="openNewCardModal()">
             <i class="fa-solid fa-plus"></i>
@@ -198,8 +207,17 @@
                     <i class="fa-solid fa-chevron-right action-arrow"></i>
                   </div>
 
+                  <div class="quick-action-item" onclick="openModal('exportModal')">
+                    <div class="action-icon purple"><i class="fa-solid fa-cloud-arrow-down"></i></div>
+                    <div class="action-details">
+                      <h4>Download DB & Visual Context</h4>
+                      <p>Export SQLite database bundled with trigger images, 6-concept visual context & audio</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right action-arrow"></i>
+                  </div>
+
                   <div class="quick-action-item" onclick="switchTab('scanner')">
-                    <div class="action-icon purple"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <div class="action-icon amber"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
                     <div class="action-details">
                       <h4>Test Card Recognition Model</h4>
                       <p>Simulate mobile camera scan against OpenCV/Gemini pipeline</p>
@@ -656,6 +674,89 @@
           <button type="submit" class="btn btn-primary" id="saveCatBtn">Save Category</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: EXPORT DATABASE & VISUAL CONTEXT -->
+  <div class="modal-overlay" id="exportModal">
+    <div class="modal-container" style="max-width: 620px;">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="width:36px; height:36px; border-radius:8px; background:rgba(76,175,80,0.15); display:flex; align-items:center; justify-content:center; color:var(--primary); font-size:16px;">
+            <i class="fa-solid fa-cloud-arrow-down"></i>
+          </div>
+          <div>
+            <h3 style="font-size:17px; font-weight:700;">Download Database & Visual Context</h3>
+            <p style="font-size:12px; color:var(--text-muted); margin:0;">Export flashcard data, visual assets, and multilingual metadata</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeModal('exportModal')"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body" style="padding: 20px;">
+        <div class="export-options-list">
+          
+          <!-- Option 1: Full ZIP Package -->
+          <div class="export-option-card primary-bundle">
+            <div class="export-card-header">
+              <div class="export-icon green"><i class="fa-solid fa-file-zipper"></i></div>
+              <div class="export-details">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <h4>Complete Visual Context Package</h4>
+                  <span class="badge-recommended">Recommended</span>
+                </div>
+                <p>Bundles the SQLite database (<code>aira.db</code>), all card trigger images, 6-concept visual dimension assets, pronunciation audio clips, and <code>visual_context_manifest.json</code>.</p>
+                <div class="bundle-items-preview">
+                  <span><i class="fa-solid fa-database"></i> SQLite DB</span>
+                  <span><i class="fa-solid fa-images"></i> Visual Context Images</span>
+                  <span><i class="fa-solid fa-headphones"></i> Audio Files</span>
+                  <span><i class="fa-solid fa-code"></i> JSON Manifest</span>
+                </div>
+              </div>
+            </div>
+            <div class="export-card-action">
+              <button class="btn btn-primary" id="btnDownloadBundle" onclick="downloadDatabaseBundle()" style="width:100%;">
+                <i class="fa-solid fa-download"></i> Download Full ZIP Bundle
+              </button>
+            </div>
+          </div>
+
+          <!-- Secondary Options Grid -->
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:14px;">
+            <!-- Option 2: Raw SQLite DB -->
+            <div class="export-option-card mini">
+              <div class="export-icon blue"><i class="fa-solid fa-database"></i></div>
+              <div class="export-details">
+                <h4>Raw SQLite Database</h4>
+                <p>Standalone <code>aira.db</code> file with relational tables.</p>
+              </div>
+              <button class="btn btn-secondary" onclick="downloadRawDb()" style="width:100%; font-size:12px;">
+                <i class="fa-solid fa-download"></i> Download .db
+              </button>
+            </div>
+
+            <!-- Option 3: JSON Manifest -->
+            <div class="export-option-card mini">
+              <div class="export-icon purple"><i class="fa-solid fa-code"></i></div>
+              <div class="export-details">
+                <h4>Visual Context JSON</h4>
+                <p>JSON manifest of cards, 4-language labels & attributes.</p>
+              </div>
+              <button class="btn btn-secondary" onclick="downloadJsonExport()" style="width:100%; font-size:12px;">
+                <i class="fa-solid fa-download"></i> Download .json
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer" style="background:var(--bg-body); border-top:1px solid var(--border-color); justify-content:space-between;">
+        <span style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-shield-check" style="color:var(--primary);"></i> Compatible with mobile app & ML pipelines
+        </span>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('exportModal')">Close</button>
+      </div>
     </div>
   </div>
 
