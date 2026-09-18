@@ -67,11 +67,25 @@ pip install -r requirements.txt
 
 ---
 
-### 2. Run Unified Backend
+### 2. Configure Database (PostgreSQL or SQLite)
+
+- **Local SQLite (Default)**: Zero configuration required. The backend defaults to `shared/data/aira.db`.
+- **Remote PostgreSQL**: Set `DATABASE_URL` in your environment or in a `.env` file at the root:
+
+```bash
+# Example .env
+DATABASE_URL=postgresql://username:password@remote-host:5432/database_name?sslmode=require
+```
+*(Supports connection string formats starting with `postgresql://` or `postgres://` from providers such as Supabase, Neon, AWS RDS, Render, Railway, etc.)*
+
+---
+
+### 3. Run Unified Backend
 From the root directory:
 ```bash
 python run_all.py
 ```
+
 - **Web Admin Portal**: `http://127.0.0.1:8000/admin/` (or `http://127.0.0.1:8000/`)
 - **Mobile User API**: `http://127.0.0.1:8000/api`
 - **Interactive Swagger Docs**: `http://127.0.0.1:8000/docs`

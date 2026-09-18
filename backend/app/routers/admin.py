@@ -242,7 +242,10 @@ def export_raw_db():
     Directly downloads the raw SQLite database file (`aira.db`).
     """
     if not os.path.exists(DB_PATH):
-        raise HTTPException(status_code=404, detail="Database file not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="SQLite database file not found. When connected to a remote PostgreSQL database, raw SQLite file download is unavailable. Please use JSON or bundle export."
+        )
     
     timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     return FileResponse(
