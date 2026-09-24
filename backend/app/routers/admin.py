@@ -11,6 +11,7 @@ from typing import List, Optional
 from ..database import get_db, IMAGES_DIR, AUDIO_DIR, DB_PATH, DATA_DIR
 from ..models import Card, Category, User, CardAttribute
 from ..schemas import AdminStatsResponse, UserAdminResponse, UserRoleUpdate
+from ..services import storage_service
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -84,11 +85,104 @@ async def upload_card_image(file: UploadFile = File(...)):
     with open(file_path, "wb") as f:
         f.write(contents)
 
+    local_url = f"/static/images/{unique_filename}"
+    s3_url = None
+    s3_key = None
+    storage_mode = "local"
+
+    # Attempt S3 cloud bucket upload
+    try:
+        s3_key = f"uploads/images/{unique_filename}"
+        s3_url, s3_key = storage_service.upload_bytes_to_s3(
+            file_bytes=contents,
+            key=s3_key,
+            content_type=file.content_type
+        )
+        storage_mode = "s3"
+    except Exception as e:
+        # S3 upload failed or not configured, fallback to local static URL
+        print(f"[Storage Service Warning] S3 upload skipped/failed ({e}), using local static storage.")
+
     return {
         "success": True,
         "filename": unique_filename,
-        "image_url": f"/static/images/{unique_filename}"
+        "image_url": s3_url or local_url,
+        "s3_url": s3_url,
+        "s3_key": s3_key,
+        "local_url": local_url,
+        "storage_mode": storage_mode
     }
+
+@router.post("/sync-images-to-s3")
+def sync_all_images_to_s3(db: Session = Depends(get_db)):
+    """
+    Scans all cards and card attributes in the database, uploads their local images
+    to the configured S3 storage bucket, and updates the database with presigned S3 URLs.
+    """
+    updated_cards = []
+    updated_attributes = []
+    errors = []
+
+    # 1. Sync Cards
+    cards = db.query(Card).all()
+    for card in cards:
+        if card.image_url:
+            clean_filename = os.path.basename(card.image_url.split("?")[0])
+            local_path = os.path.join(IMAGES_DIR, clean_filename)
+            if os.path.exists(local_path):
+                try:
+                    s3_key = f"uploads/images/{clean_filename}"
+                    s3_url, key = storage_service.upload_file_path_to_s3(
+                        file_path=local_path,
+                        custom_key=s3_key
+                    )
+                    card.image_url = s3_url
+                    updated_cards.append({
+                        "card_id": card.id,
+                        "title": card.title_en,
+                        "filename": clean_filename,
+                        "url": s3_url,
+                        "key": key
+                    })
+                except Exception as e:
+                    errors.append(f"Card #{card.id} ({card.title_en}): {str(e)}")
+
+    # 2. Sync Card Attributes
+    attributes = db.query(CardAttribute).all()
+    for attr in attributes:
+        if attr.image_url:
+            clean_filename = os.path.basename(attr.image_url.split("?")[0])
+            local_path = os.path.join(IMAGES_DIR, clean_filename)
+            if os.path.exists(local_path):
+                try:
+                    s3_key = f"uploads/images/{clean_filename}"
+                    s3_url, key = storage_service.upload_file_path_to_s3(
+                        file_path=local_path,
+                        custom_key=s3_key
+                    )
+                    attr.image_url = s3_url
+                    updated_attributes.append({
+                        "attribute_id": attr.id,
+                        "card_id": attr.card_id,
+                        "key": attr.key,
+                        "filename": clean_filename,
+                        "url": s3_url,
+                        "s3_key": key
+                    })
+                except Exception as e:
+                    errors.append(f"Attribute #{attr.id} (Card #{attr.card_id}, {attr.key}): {str(e)}")
+
+    db.commit()
+
+    return {
+        "success": True,
+        "updated_cards_count": len(updated_cards),
+        "updated_attributes_count": len(updated_attributes),
+        "updated_cards": updated_cards,
+        "updated_attributes": updated_attributes,
+        "errors": errors
+    }
+
 
 def _generate_visual_context_manifest(db: Session) -> dict:
     categories = db.query(Category).all()

@@ -26,16 +26,31 @@ def _load_image_from_path_or_url(image_url: str):
         if os.path.exists(path):
             return cv2.imread(path)
             
-    # 2. Check direct filename in IMAGES_DIR
-    direct_path = os.path.join(IMAGES_DIR, os.path.basename(image_url))
-    if os.path.exists(direct_path):
+    # 2. Check direct filename in IMAGES_DIR (stripping URL query params if any)
+    clean_filename = os.path.basename(image_url.split("?")[0])
+    direct_path = os.path.join(IMAGES_DIR, clean_filename)
+    if clean_filename and os.path.exists(direct_path):
         return cv2.imread(direct_path)
 
     # 3. Check absolute path
     if os.path.exists(image_url):
         return cv2.imread(image_url)
     
+    # 4. If remote HTTP/HTTPS URL (e.g. S3 presigned or bucket URL)
+    if image_url.startswith("http://") or image_url.startswith("https://"):
+        try:
+            import httpx
+            resp = httpx.get(image_url, timeout=5.0)
+            if resp.status_code == 200:
+                nparr = np.frombuffer(resp.content, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                if img is not None:
+                    return img
+        except Exception:
+            pass
+    
     return None
+
 
 def process_card_image(image_bytes: bytes, db: Session):
     """
