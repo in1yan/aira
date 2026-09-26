@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
   <link rel="stylesheet" href="/static/admin/admin.css">
 </head>
 <body>
@@ -428,9 +429,14 @@
               <div class="form-group">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                   <label style="margin:0;">Trigger / Main Image *</label>
-                  <button type="button" class="btn btn-sm btn-outline-primary" onclick="triggerImageSlotUpload('main')">
-                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Image
-                  </button>
+                  <div style="display:flex; gap:6px; align-items:center;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="btn_crop_main" onclick="openCropperForCurrent('main')" style="display:none;" title="Crop loaded image">
+                      <i class="fa-solid fa-crop-simple"></i> Crop
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="triggerImageSlotUpload('main')">
+                      <i class="fa-solid fa-cloud-arrow-up"></i> Upload Image
+                    </button>
+                  </div>
                 </div>
                 <input type="file" id="file_slot_main" accept="image/*" style="display:none;" onchange="uploadImageSlot('main')">
                 <input type="text" id="cardFormImageUrl" placeholder="Image URL (auto-filled on upload) or /static/images/..." oninput="updateSlotPreview('main')">
@@ -461,9 +467,14 @@
                   <div class="slot-header">
                     <span class="slot-number">1</span>
                     <input type="text" id="attr_1_name" class="slot-name-input" value="Group" placeholder="Attribute 1 Name (e.g. Group)">
-                    <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_1')">
-                      <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_1">Upload Image</span>
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <button type="button" class="btn-slot-crop" id="btn_crop_attr_1" onclick="openCropperForCurrent('attr_1')" style="display:none;" title="Crop loaded image">
+                        <i class="fa-solid fa-crop-simple"></i>
+                      </button>
+                      <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_1')">
+                        <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_1">Upload Image</span>
+                      </button>
+                    </div>
                     <input type="file" id="file_slot_attr_1" accept="image/*" style="display:none;" onchange="uploadImageSlot('attr_1')">
                   </div>
                   <div class="slot-body">
@@ -486,9 +497,14 @@
                   <div class="slot-header">
                     <span class="slot-number">2</span>
                     <input type="text" id="attr_2_name" class="slot-name-input" value="Location" placeholder="Attribute 2 Name (e.g. Location)">
-                    <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_2')">
-                      <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_2">Upload Image</span>
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <button type="button" class="btn-slot-crop" id="btn_crop_attr_2" onclick="openCropperForCurrent('attr_2')" style="display:none;" title="Crop loaded image">
+                        <i class="fa-solid fa-crop-simple"></i>
+                      </button>
+                      <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_2')">
+                        <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_2">Upload Image</span>
+                      </button>
+                    </div>
                     <input type="file" id="file_slot_attr_2" accept="image/*" style="display:none;" onchange="uploadImageSlot('attr_2')">
                   </div>
                   <div class="slot-body">
@@ -511,9 +527,14 @@
                   <div class="slot-header">
                     <span class="slot-number">3</span>
                     <input type="text" id="attr_3_name" class="slot-name-input" value="Association" placeholder="Attribute 3 Name (e.g. Association)">
-                    <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_3')">
-                      <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_3">Upload Image</span>
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <button type="button" class="btn-slot-crop" id="btn_crop_attr_3" onclick="openCropperForCurrent('attr_3')" style="display:none;" title="Crop loaded image">
+                        <i class="fa-solid fa-crop-simple"></i>
+                      </button>
+                      <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_3')">
+                        <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_3">Upload Image</span>
+                      </button>
+                    </div>
                     <input type="file" id="file_slot_attr_3" accept="image/*" style="display:none;" onchange="uploadImageSlot('attr_3')">
                   </div>
                   <div class="slot-body">
@@ -536,9 +557,14 @@
                   <div class="slot-header">
                     <span class="slot-number">4</span>
                     <input type="text" id="attr_4_name" class="slot-name-input" value="Property" placeholder="Attribute 4 Name (e.g. Property)">
-                    <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_4')">
-                      <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_4">Upload Image</span>
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <button type="button" class="btn-slot-crop" id="btn_crop_attr_4" onclick="openCropperForCurrent('attr_4')" style="display:none;" title="Crop loaded image">
+                        <i class="fa-solid fa-crop-simple"></i>
+                      </button>
+                      <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_4')">
+                        <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_4">Upload Image</span>
+                      </button>
+                    </div>
                     <input type="file" id="file_slot_attr_4" accept="image/*" style="display:none;" onchange="uploadImageSlot('attr_4')">
                   </div>
                   <div class="slot-body">
@@ -561,9 +587,14 @@
                   <div class="slot-header">
                     <span class="slot-number">5</span>
                     <input type="text" id="attr_5_name" class="slot-name-input" value="Attribute 5" placeholder="Attribute 5 Name (e.g. Action/Use/Sound)">
-                    <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_5')">
-                      <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_5">Upload Image</span>
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <button type="button" class="btn-slot-crop" id="btn_crop_attr_5" onclick="openCropperForCurrent('attr_5')" style="display:none;" title="Crop loaded image">
+                        <i class="fa-solid fa-crop-simple"></i>
+                      </button>
+                      <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_5')">
+                        <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_5">Upload Image</span>
+                      </button>
+                    </div>
                     <input type="file" id="file_slot_attr_5" accept="image/*" style="display:none;" onchange="uploadImageSlot('attr_5')">
                   </div>
                   <div class="slot-body">
@@ -586,9 +617,14 @@
                   <div class="slot-header">
                     <span class="slot-number">6</span>
                     <input type="text" id="attr_6_name" class="slot-name-input" value="Attribute 6" placeholder="Attribute 6 Name (e.g. Use/Diet/Habitat)">
-                    <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_6')">
-                      <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_6">Upload Image</span>
-                    </button>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                      <button type="button" class="btn-slot-crop" id="btn_crop_attr_6" onclick="openCropperForCurrent('attr_6')" style="display:none;" title="Crop loaded image">
+                        <i class="fa-solid fa-crop-simple"></i>
+                      </button>
+                      <button type="button" class="btn-slot-upload" onclick="triggerImageSlotUpload('attr_6')">
+                        <i class="fa-solid fa-camera"></i> <span id="btn_txt_attr_6">Upload Image</span>
+                      </button>
+                    </div>
                     <input type="file" id="file_slot_attr_6" accept="image/*" style="display:none;" onchange="uploadImageSlot('attr_6')">
                   </div>
                   <div class="slot-body">
@@ -760,9 +796,109 @@
     </div>
   </div>
 
+  <!-- MODAL: IMAGE CROPPER -->
+  <div class="modal-overlay" id="cropperModal" style="z-index: 1050;">
+    <div class="modal-container cropper-modal-container">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="cropper-header-icon">
+            <i class="fa-solid fa-crop-simple"></i>
+          </div>
+          <div>
+            <h3 id="cropperModalTitle">Crop & Adjust Image</h3>
+            <p id="cropperModalSubtitle" style="font-size:12px; color:var(--text-muted); margin:0;">Editing: Trigger Image</p>
+          </div>
+        </div>
+        <button class="modal-close" onclick="closeCropperModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body cropper-modal-body">
+        <div class="cropper-layout">
+          <!-- Main Canvas Area -->
+          <div class="cropper-workspace">
+            <div class="cropper-image-container">
+              <img id="cropperTargetImg" src="" alt="Image to crop">
+            </div>
+          </div>
+
+          <!-- Controls & Live Preview Sidebar -->
+          <div class="cropper-sidebar">
+            <!-- Aspect Ratio Selector -->
+            <div class="cropper-control-group">
+              <label class="cropper-label"><i class="fa-solid fa-shapes"></i> Aspect Ratio</label>
+              <div class="cropper-aspect-btns">
+                <button type="button" class="btn-aspect active" data-ratio="1" onclick="setCropperRatio(1, this)">1:1 (Square)</button>
+                <button type="button" class="btn-aspect" data-ratio="1.333333" onclick="setCropperRatio(4/3, this)">4:3</button>
+                <button type="button" class="btn-aspect" data-ratio="1.777778" onclick="setCropperRatio(16/9, this)">16:9</button>
+                <button type="button" class="btn-aspect" data-ratio="NaN" onclick="setCropperRatio(NaN, this)">Free</button>
+              </div>
+            </div>
+
+            <!-- Transform Controls -->
+            <div class="cropper-control-group">
+              <label class="cropper-label"><i class="fa-solid fa-arrows-rotate"></i> Rotate & Flip</label>
+              <div class="cropper-tool-btns">
+                <button type="button" class="btn-cropper-tool" onclick="cropperRotate(-90)" title="Rotate Left 90°">
+                  <i class="fa-solid fa-rotate-left"></i> -90°
+                </button>
+                <button type="button" class="btn-cropper-tool" onclick="cropperRotate(90)" title="Rotate Right 90°">
+                  <i class="fa-solid fa-rotate-right"></i> +90°
+                </button>
+                <button type="button" class="btn-cropper-tool" onclick="cropperFlip('h')" title="Flip Horizontal">
+                  <i class="fa-solid fa-left-right"></i> Flip H
+                </button>
+                <button type="button" class="btn-cropper-tool" onclick="cropperFlip('v')" title="Flip Vertical">
+                  <i class="fa-solid fa-up-down"></i> Flip V
+                </button>
+              </div>
+            </div>
+
+            <!-- Zoom & View Controls -->
+            <div class="cropper-control-group">
+              <label class="cropper-label"><i class="fa-solid fa-magnifying-glass-plus"></i> Zoom & Reset</label>
+              <div class="cropper-tool-btns">
+                <button type="button" class="btn-cropper-tool" onclick="cropperZoom(0.1)" title="Zoom In">
+                  <i class="fa-solid fa-magnifying-glass-plus"></i> In
+                </button>
+                <button type="button" class="btn-cropper-tool" onclick="cropperZoom(-0.1)" title="Zoom Out">
+                  <i class="fa-solid fa-magnifying-glass-minus"></i> Out
+                </button>
+                <button type="button" class="btn-cropper-tool" onclick="cropperReset()" title="Reset All Adjustments" style="grid-column: span 2;">
+                  <i class="fa-solid fa-arrow-rotate-left"></i> Reset View
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Preview -->
+            <div class="cropper-control-group">
+              <label class="cropper-label"><i class="fa-solid fa-eye"></i> Live Preview</label>
+              <div class="cropper-preview-container">
+                <div class="cropper-preview-box preview-lg"></div>
+                <div class="cropper-preview-box preview-sm"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer cropper-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeCropperModal()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-outline-primary" id="btnUploadRawOriginal" onclick="uploadRawOriginalImage()">
+          <i class="fa-solid fa-file-image"></i> Skip & Upload Original
+        </button>
+        <button type="button" class="btn btn-primary" id="btnApplyCropUpload" onclick="applyCropAndUpload()">
+          <i class="fa-solid fa-crop-simple"></i> Crop & Upload
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- TOAST CONTAINER -->
   <div class="toast-container" id="toastContainer"></div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
   <script src="/static/admin/admin.js"></script>
 </body>
 </html>

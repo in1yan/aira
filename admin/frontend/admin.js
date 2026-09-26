@@ -351,16 +351,231 @@ async function updateUserRole(userId, newRole) {
   }
 }
 
-// IMAGE SLOT UPLOAD & PREVIEW HANDLERS
+// =====================================================================
+// IMAGE CROPPER & SLOT UPLOAD MANAGEMENT
+// =====================================================================
+
+let cropperState = {
+  instance: null,
+  slot: null,
+  rawFile: null,
+  fileName: '',
+  aspectRatio: 1,
+  scaleX: 1,
+  scaleY: 1,
+};
+
 function triggerImageSlotUpload(slot) {
   const fileInput = document.getElementById(`file_slot_${slot}`);
-  if (fileInput) fileInput.click();
+  if (fileInput) {
+    fileInput.value = ''; // Reset so onChange fires even for same file
+    fileInput.click();
+  }
 }
 
 async function uploadImageSlot(slot) {
   const fileInput = document.getElementById(`file_slot_${slot}`);
   if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
-  await uploadImageFile(slot, fileInput.files[0]);
+  const file = fileInput.files[0];
+  openCropperWithFile(slot, file);
+}
+
+function openCropperWithFile(slot, file) {
+  cropperState.slot = slot;
+  cropperState.rawFile = file;
+  cropperState.fileName = file.name || 'image.png';
+  cropperState.scaleX = 1;
+  cropperState.scaleY = 1;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    initCropperModal(slot, e.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+function openCropperForCurrent(slot) {
+  let url = '';
+  if (slot === 'main') {
+    url = (document.getElementById('cardFormImageUrl').value || '').trim();
+  } else {
+    url = (document.getElementById(`${slot}_image`).value || '').trim();
+  }
+
+  if (!url) {
+    showToast('No image available to crop. Please upload an image first.', 'warning');
+    return;
+  }
+
+  cropperState.slot = slot;
+  cropperState.rawFile = null;
+  const parts = url.split('/');
+  cropperState.fileName = parts[parts.length - 1].split('?')[0] || 'cropped_image.png';
+  cropperState.scaleX = 1;
+  cropperState.scaleY = 1;
+
+  initCropperModal(slot, url);
+}
+
+function getSlotDisplayName(slot) {
+  if (slot === 'main') return 'Trigger / Main Image';
+  const slotNum = slot.replace('attr_', '');
+  const nameInput = document.getElementById(`${slot}_name`);
+  const customName = nameInput ? nameInput.value.trim() : '';
+  return customName ? `Attribute ${slotNum} (${customName})` : `Attribute ${slotNum}`;
+}
+
+function initCropperModal(slot, imageSrc) {
+  const targetImg = document.getElementById('cropperTargetImg');
+  const subtitle = document.getElementById('cropperModalSubtitle');
+  const skipBtn = document.getElementById('btnUploadRawOriginal');
+
+  if (subtitle) {
+    subtitle.textContent = `Target Slot: ${getSlotDisplayName(slot)}`;
+  }
+
+  if (skipBtn) {
+    skipBtn.style.display = cropperState.rawFile ? 'inline-flex' : 'none';
+  }
+
+  // Destroy previous cropper if exists
+  if (cropperState.instance) {
+    cropperState.instance.destroy();
+    cropperState.instance = null;
+  }
+
+  targetImg.src = imageSrc;
+  openModal('cropperModal');
+
+  // Reset Aspect Ratio Buttons (default 1:1)
+  cropperState.aspectRatio = 1;
+  document.querySelectorAll('.btn-aspect').forEach(btn => {
+    const ratio = parseFloat(btn.getAttribute('data-ratio'));
+    if (ratio === 1) btn.classList.add('active');
+    else btn.classList.remove('active');
+  });
+
+  // Initialize Cropper when modal opens
+  setTimeout(() => {
+    cropperState.instance = new Cropper(targetImg, {
+      aspectRatio: 1,
+      viewMode: 1,
+      dragMode: 'move',
+      autoCropArea: 0.9,
+      restore: false,
+      guides: true,
+      center: true,
+      highlight: true,
+      cropBoxMovable: true,
+      cropBoxResizable: true,
+      toggleDragModeOnDblclick: false,
+      preview: '.cropper-preview-box',
+      checkCrossOrigin: false,
+    });
+  }, 150);
+}
+
+function setCropperRatio(ratio, buttonElement) {
+  cropperState.aspectRatio = ratio;
+  document.querySelectorAll('.btn-aspect').forEach(btn => btn.classList.remove('active'));
+  if (buttonElement) buttonElement.classList.add('active');
+
+  if (cropperState.instance) {
+    cropperState.instance.setAspectRatio(ratio);
+  }
+}
+
+function cropperRotate(deg) {
+  if (cropperState.instance) {
+    cropperState.instance.rotate(deg);
+  }
+}
+
+function cropperFlip(dir) {
+  if (!cropperState.instance) return;
+  if (dir === 'h') {
+    cropperState.scaleX = -cropperState.scaleX;
+    cropperState.instance.scaleX(cropperState.scaleX);
+  } else if (dir === 'v') {
+    cropperState.scaleY = -cropperState.scaleY;
+    cropperState.instance.scaleY(cropperState.scaleY);
+  }
+}
+
+function cropperZoom(ratio) {
+  if (cropperState.instance) {
+    cropperState.instance.zoom(ratio);
+  }
+}
+
+function cropperReset() {
+  if (cropperState.instance) {
+    cropperState.scaleX = 1;
+    cropperState.scaleY = 1;
+    cropperState.instance.reset();
+  }
+}
+
+function closeCropperModal() {
+  if (cropperState.instance) {
+    cropperState.instance.destroy();
+    cropperState.instance = null;
+  }
+  closeModal('cropperModal');
+}
+
+async function uploadRawOriginalImage() {
+  if (!cropperState.rawFile || !cropperState.slot) {
+    closeCropperModal();
+    return;
+  }
+  const slot = cropperState.slot;
+  const file = cropperState.rawFile;
+  closeCropperModal();
+  await uploadImageFile(slot, file);
+}
+
+async function applyCropAndUpload() {
+  if (!cropperState.instance || !cropperState.slot) return;
+
+  const slot = cropperState.slot;
+  const originalName = cropperState.fileName || 'image.png';
+  const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.')) || originalName;
+
+  const canvas = cropperState.instance.getCroppedCanvas({
+    maxWidth: 2048,
+    maxHeight: 2048,
+    fillColor: '#fff',
+    imageSmoothingEnabled: true,
+    imageSmoothingQuality: 'high',
+  });
+
+  if (!canvas) {
+    showToast('Failed to process cropped canvas.', 'error');
+    return;
+  }
+
+  const applyBtn = document.getElementById('btnApplyCropUpload');
+  if (applyBtn) {
+    applyBtn.disabled = true;
+    applyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
+  }
+
+  canvas.toBlob(async (blob) => {
+    try {
+      if (!blob) throw new Error('Could not generate image blob from cropped canvas');
+      const croppedFile = new File([blob], `${nameWithoutExt}_cropped.png`, { type: 'image/png' });
+      closeCropperModal();
+      await uploadImageFile(slot, croppedFile);
+    } catch (err) {
+      showToast('Crop & upload error: ' + err.message, 'error');
+    } finally {
+      if (applyBtn) {
+        applyBtn.disabled = false;
+        applyBtn.innerHTML = '<i class="fa-solid fa-crop-simple"></i> Crop & Upload';
+      }
+    }
+  }, 'image/png', 0.95);
 }
 
 async function uploadImageFile(slot, file) {
@@ -369,14 +584,19 @@ async function uploadImageFile(slot, file) {
   const formData = new FormData();
   formData.append('file', file);
 
+  const slotLabel = getSlotDisplayName(slot);
+
   try {
-    showToast(`Uploading image for ${slot === 'main' ? 'Trigger Image' : slot}...`, 'info');
+    showToast(`Uploading image for ${slotLabel}...`, 'info');
     const res = await fetch('/api/admin/upload-image', {
       method: 'POST',
       body: formData,
     });
 
-    if (!res.ok) throw new Error('Image upload failed on server');
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || 'Image upload failed on server');
+    }
     const data = await res.json();
 
     if (slot === 'main') {
@@ -389,7 +609,7 @@ async function uploadImageFile(slot, file) {
       updateSlotPreview(slot);
     }
 
-    showToast(`Image uploaded successfully for ${slot === 'main' ? 'Trigger Image' : slot}!`, 'success');
+    showToast(`Image uploaded successfully for ${slotLabel}!`, 'success');
   } catch (err) {
     showToast(`Failed to upload image: ${err.message}`, 'error');
   }
@@ -400,25 +620,31 @@ function updateSlotPreview(slot) {
     const url = (document.getElementById('cardFormImageUrl').value || '').trim();
     const img = document.getElementById('preview_img_main');
     const txt = document.getElementById('preview_txt_main');
+    const cropBtn = document.getElementById('btn_crop_main');
     if (url) {
       img.src = url;
       img.style.display = 'block';
       if (txt) txt.style.display = 'none';
+      if (cropBtn) cropBtn.style.display = 'inline-flex';
     } else {
       img.style.display = 'none';
       if (txt) txt.style.display = 'block';
+      if (cropBtn) cropBtn.style.display = 'none';
     }
   } else {
     const url = (document.getElementById(`${slot}_image`).value || '').trim();
     const img = document.getElementById(`preview_img_${slot}`);
     const ico = document.getElementById(`preview_ico_${slot}`);
+    const cropBtn = document.getElementById(`btn_crop_${slot}`);
     if (url) {
       img.src = url;
       img.style.display = 'block';
       if (ico) ico.style.display = 'none';
+      if (cropBtn) cropBtn.style.display = 'inline-flex';
     } else {
       img.style.display = 'none';
       if (ico) ico.style.display = 'block';
+      if (cropBtn) cropBtn.style.display = 'none';
     }
   }
 }
