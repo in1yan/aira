@@ -99,6 +99,12 @@ def upload_and_update_database():
                         image_url_map[clean_name] = url
                         updated_cards_count += 1
                         print(f"  - Card #{card.id} ('{card.title_en}') -> uploaded and image_url updated: [public url] {url}")
+                    elif "s3." in card.image_url or "amazonaws.com" in card.image_url:
+                        correct_url = get_public_url(f"uploads/images/{clean_name}", bucket_name=bucket)
+                        if card.image_url != correct_url:
+                            card.image_url = correct_url
+                            updated_cards_count += 1
+                            print(f"  - Card #{card.id} ('{card.title_en}') -> normalized to endpoint URL: {card.image_url}")
 
         print(f"  Total cards updated: {updated_cards_count}/{len(cards)}")
 
@@ -123,6 +129,12 @@ def upload_and_update_database():
                         image_url_map[clean_name] = url
                         updated_attrs_count += 1
                         print(f"  - Attribute #{attr.id} (Card #{attr.card_id}, key '{attr.key}') -> uploaded and image_url updated: [public url] {url}")
+                    elif "s3." in attr.image_url or "amazonaws.com" in attr.image_url:
+                        correct_url = get_public_url(f"uploads/images/{clean_name}", bucket_name=bucket)
+                        if attr.image_url != correct_url:
+                            attr.image_url = correct_url
+                            updated_attrs_count += 1
+                            print(f"  - Attribute #{attr.id} (Card #{attr.card_id}, key '{attr.key}') -> normalized to endpoint URL: {attr.image_url}")
 
         print(f"  Total attributes updated: {updated_attrs_count}/{len(attributes)}")
 

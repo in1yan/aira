@@ -24,7 +24,7 @@ def get_s3_config() -> Dict[str, Any]:
     bucket = os.getenv("AWS_S3_BUCKET") or os.getenv("S3_BUCKET") or os.getenv("AWS_BUCKET_NAME") or "assets"
     access_key = os.getenv("AWS_ACCESS_KEY_ID")
     secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
-    endpoint_url = os.getenv("AWS_ENDPOINT_URL") or os.getenv("AWS_S3_ENDPOINT_URL")
+    endpoint_url = os.getenv("AWS_ENDPOINT_URL") or os.getenv("AWS_S3_ENDPOINT_URL") or os.getenv("AWS_ENDPOINT_URL_S3")
     custom_domain = os.getenv("AWS_S3_CUSTOM_DOMAIN") or os.getenv("AWS_PUBLIC_URL_BASE")
     
     try:
@@ -114,12 +114,14 @@ def upload_bytes_to_s3(
         "ContentType": content_type
     }
     
-    # Try uploading; if public read ACL is supported on the bucket, attempt it
-    try:
-        s3.put_object(**put_kwargs, ACL="public-read")
-    except Exception:
-        # Some buckets enforce "Bucket Owner Enforced" which rejects ACLs and relies on bucket policy
+    # If using custom endpoint (Neon, R2, MinIO), upload without ACL (as ACLs are often not implemented)
+    if config.get("endpoint_url"):
         s3.put_object(**put_kwargs)
+    else:
+        try:
+            s3.put_object(**put_kwargs, ACL="public-read")
+        except Exception:
+            s3.put_object(**put_kwargs)
 
     if use_presigned:
         expiry = expires_in if expires_in is not None else config["presigned_expiry"]
