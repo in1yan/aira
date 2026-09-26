@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Aira Storage Bucket Sync Script
-Uploads flashcard images to AWS S3 storage bucket and updates them in the database with their URLs.
+Uploads flashcard images to AWS S3 storage bucket and updates them in the database with permanent public URLs.
 
 Usage:
     python upload_images_to_s3.py
@@ -17,36 +17,19 @@ from dotenv import load_dotenv
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 load_dotenv(os.path.join(ROOT_DIR, ".env"))
 
-# Import database models from backend
+# Import database models and storage service from backend
 sys.path.insert(0, ROOT_DIR)
 from backend.app.database import SessionLocal, IMAGES_DIR, engine, IS_SQLITE
 from backend.app.models import Card, CardAttribute, Category
-
-def get_s3_client():
-    region = os.environ.get("AWS_REGION", "us-east-1")
-    access_key = os.environ.get("AWS_ACCESS_KEY_ID")
-    secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY")
-    endpoint_url = os.environ.get("AWS_ENDPOINT_URL") or os.environ.get("AWS_S3_ENDPOINT_URL")
-
-    client_kwargs = {
-        "service_name": "s3",
-        "region_name": region
-    }
-    if access_key and secret_key:
-        client_kwargs["aws_access_key_id"] = access_key
-        client_kwargs["aws_secret_access_key"] = secret_key
-    if endpoint_url:
-        client_kwargs["endpoint_url"] = endpoint_url
-
-    return boto3.client(**client_kwargs)
+from backend.app.services.storage_service import upload_bytes_to_s3, get_public_url, get_s3_config, get_s3_client
 
 def upload_and_update_database():
-    bucket = os.environ.get("AWS_S3_BUCKET", "assets")
-    region = os.environ.get("AWS_REGION", "us-east-1")
-    expires_in = int(os.environ.get("AWS_S3_PRESIGNED_EXPIRY", "3600"))
+    config = get_s3_config()
+    bucket = config["bucket"]
+    region = config["region"]
 
     print("=" * 70)
-    print("  AIRA FLASHCARDS - S3 STORAGE UPLOAD & DB UPDATE")
+    print("  AIRA FLASHCARDS - S3 STORAGE UPLOAD & DB UPDATE (PUBLIC URLS)")
     print("=" * 70)
     print(f"  Target S3 Bucket : {bucket}")
     print(f"  AWS Region       : {region}")
@@ -77,24 +60,17 @@ def upload_and_update_database():
                 with open(file_path, "rb") as f:
                     file_bytes = f.read()
 
-                # Upload to S3 bucket
-                s3.put_object(
-                    Bucket=bucket,
-                    Key=key,
-                    Body=file_bytes,
-                    ContentType=content_type
-                )
-
-                # Generate presigned view URL
-                url = s3.generate_presigned_url(
-                    "get_object",
-                    Params={"Bucket": bucket, "Key": key},
-                    ExpiresIn=expires_in
+                url, s3_key = upload_bytes_to_s3(
+                    file_bytes=file_bytes,
+                    key=key,
+                    content_type=content_type,
+                    bucket_name=bucket,
+                    use_presigned=False
                 )
 
                 image_url_map[filename] = url
                 print(f"  [{idx}/{len(image_files)}] Uploaded: {key}")
-                print(f"      [view] {url}")
+                print(f"      [public url] {url}")
 
             except Exception as e:
                 print(f"  [{idx}/{len(image_files)}] Failed to upload {filename}: {e}")
@@ -102,7 +78,7 @@ def upload_and_update_database():
     # Step 2: Update Database Records (Cards & Card Attributes)
     db = SessionLocal()
     try:
-        print("\n[2/3] Updating Flashcards in database with S3 URLs...")
+        print("\n[2/3] Updating Flashcards in database with permanent S3 public URLs...")
         cards = db.query(Card).all()
         updated_cards_count = 0
 
@@ -112,23 +88,21 @@ def upload_and_update_database():
                 if clean_name in image_url_map:
                     card.image_url = image_url_map[clean_name]
                     updated_cards_count += 1
-                    print(f"  - Card #{card.id} ('{card.title_en}') -> image_url updated")
+                    print(f"  - Card #{card.id} ('{card.title_en}') -> image_url updated to: {card.image_url}")
                 else:
-                    # If image exists on disk under clean_name, upload directly
                     card_file_path = os.path.join(IMAGES_DIR, clean_name)
                     if os.path.exists(card_file_path):
                         key = f"uploads/images/{clean_name}"
                         with open(card_file_path, "rb") as f:
-                            s3.put_object(Bucket=bucket, Key=key, Body=f.read())
-                        url = s3.generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=expires_in)
+                            url, _ = upload_bytes_to_s3(f.read(), key=key, bucket_name=bucket, use_presigned=False)
                         card.image_url = url
                         image_url_map[clean_name] = url
                         updated_cards_count += 1
-                        print(f"  - Card #{card.id} ('{card.title_en}') -> uploaded and image_url updated: [view] {url}")
+                        print(f"  - Card #{card.id} ('{card.title_en}') -> uploaded and image_url updated: [public url] {url}")
 
         print(f"  Total cards updated: {updated_cards_count}/{len(cards)}")
 
-        print("\n[3/3] Updating Card Attributes in database with S3 URLs...")
+        print("\n[3/3] Updating Card Attributes in database with permanent S3 public URLs...")
         attributes = db.query(CardAttribute).all()
         updated_attrs_count = 0
 
@@ -138,25 +112,24 @@ def upload_and_update_database():
                 if clean_name in image_url_map:
                     attr.image_url = image_url_map[clean_name]
                     updated_attrs_count += 1
-                    print(f"  - Attribute #{attr.id} (Card #{attr.card_id}, key '{attr.key}') -> image_url updated")
+                    print(f"  - Attribute #{attr.id} (Card #{attr.card_id}, key '{attr.key}') -> image_url updated to: {attr.image_url}")
                 else:
                     attr_file_path = os.path.join(IMAGES_DIR, clean_name)
                     if os.path.exists(attr_file_path):
                         key = f"uploads/images/{clean_name}"
                         with open(attr_file_path, "rb") as f:
-                            s3.put_object(Bucket=bucket, Key=key, Body=f.read())
-                        url = s3.generate_presigned_url("get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=expires_in)
+                            url, _ = upload_bytes_to_s3(f.read(), key=key, bucket_name=bucket, use_presigned=False)
                         attr.image_url = url
                         image_url_map[clean_name] = url
                         updated_attrs_count += 1
-                        print(f"  - Attribute #{attr.id} (Card #{attr.card_id}, key '{attr.key}') -> uploaded and image_url updated: [view] {url}")
+                        print(f"  - Attribute #{attr.id} (Card #{attr.card_id}, key '{attr.key}') -> uploaded and image_url updated: [public url] {url}")
 
         print(f"  Total attributes updated: {updated_attrs_count}/{len(attributes)}")
 
         # Commit DB changes
         db.commit()
         print("\n" + "=" * 70)
-        print("  DATABASE COMMITTED & SYNCHRONIZED WITH S3 BUCKET SUCCESSFULLY!")
+        print("  DATABASE COMMITTED & SYNCHRONIZED WITH PUBLIC S3 URLS SUCCESSFULLY!")
         print("=" * 70)
 
     except Exception as e:
