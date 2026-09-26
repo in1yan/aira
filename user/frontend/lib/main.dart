@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/video_intro_screen.dart';
 import 'services/api_client.dart';
 
 void main() => runApp(const SmartFlashCardsApp());
@@ -78,7 +79,12 @@ class _AuthGateState extends State<_AuthGate> {
           if (!snapshot.hasData)
             return const Scaffold(
                 body: Center(child: CircularProgressIndicator()));
-          return snapshot.data! ? const HomeScreen() : const LoginScreen();
+          return snapshot.data!
+              ? const VideoIntroScreen(videoAssets: [
+                  'assets/videos/intro1.mp4',
+                  'assets/videos/intro2.mp4',
+                ])
+              : const LoginScreen();
         },
       );
 }
