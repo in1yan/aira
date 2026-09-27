@@ -13,6 +13,7 @@ dependencies:
   http: ^1.2.2
   http_parser: ^4.1.2
   shared_preferences: ^2.3.3
+  video_player: ^2.9.3
 
 dev_dependencies:
   flutter_test:
@@ -21,3 +22,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/videos/
+
