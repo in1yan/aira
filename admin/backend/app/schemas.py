@@ -22,7 +22,20 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Concept Attribute schema
+class UserAdminResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+# Concept Attribute schemas
 class CardAttributeSchema(BaseModel):
     key: str
     label: str
@@ -55,6 +68,7 @@ class CategoryCreate(BaseModel):
     description: Optional[str] = ""
     icon_name: Optional[str] = "pets"
     color_hex: Optional[str] = "#E8F5E9"
+    domain: Optional[str] = "semantic"
 
 class CategoryUpdate(BaseModel):
     name_en: Optional[str] = None
@@ -64,6 +78,7 @@ class CategoryUpdate(BaseModel):
     description: Optional[str] = None
     icon_name: Optional[str] = None
     color_hex: Optional[str] = None
+    domain: Optional[str] = None
 
 class CategoryResponse(BaseModel):
     id: int
@@ -74,6 +89,7 @@ class CategoryResponse(BaseModel):
     description: Optional[str] = ""
     icon_name: Optional[str] = "pets"
     color_hex: Optional[str] = "#E8F5E9"
+    domain: Optional[str] = "semantic"
     card_count: Optional[int] = 0
 
     class Config:
@@ -113,6 +129,7 @@ class CardResponse(BaseModel):
     id: int
     category_id: int
     category_name: Optional[str] = ""
+    domain: Optional[str] = "semantic"
     subcategory: Optional[str] = ""
     name: str
     title_en: str
@@ -128,23 +145,28 @@ class CardResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Admin Stats and User Management schemas
+# Detection schemas
+class DetectionResponse(BaseModel):
+    success: bool
+    card: Optional[CardResponse] = None
+    detected_label: Optional[str] = None
+    confidence: Optional[float] = 0.95
+    message: str
+
+# TTS schemas
+class TTSRequest(BaseModel):
+    text: str
+    lang: Optional[str] = "en"
+
+class TTSResponse(BaseModel):
+    audio_url: str
+    language: str
+    text: str
+
+# Admin Stats schema
 class AdminStatsResponse(BaseModel):
     total_cards: int
     total_categories: int
     total_users: int
     total_attributes: int
     category_distribution: List[Dict[str, Any]]
-
-class UserAdminResponse(BaseModel):
-    id: int
-    name: str
-    email: str
-    role: str
-    is_active: bool
-
-    class Config:
-        from_attributes = True
-
-class UserRoleUpdate(BaseModel):
-    role: str

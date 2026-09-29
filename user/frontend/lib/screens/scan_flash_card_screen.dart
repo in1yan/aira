@@ -130,6 +130,7 @@ class _ScanFlashCardScreenState extends State<ScanFlashCardScreen>
               cardId: cardId,
               cardName: cardName,
               imageUrl: imageUrl,
+              domain: (cardData?['domain'] ?? 'semantic').toString(),
               cardData: cardData,
               attributes: attributes,
             ),

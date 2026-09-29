@@ -1,5 +1,55 @@
 // Aira Smart Flashcards Web Admin Portal JavaScript
 
+const DOMAIN_BADGE_MAP = {
+  phonology: { label: 'Phonology (Form)', bg: '#E0F2FE', color: '#0284C7' },
+  morphology: { label: 'Morphology (Form)', bg: '#DCFCE7', color: '#16A34A' },
+  syntax: { label: 'Syntax (Form)', bg: '#F3E8FF', color: '#9333EA' },
+  semantic: { label: 'Semantic (Content)', bg: '#FDF4FF', color: '#C026D3' },
+  pragmatic: { label: 'Pragmatic (Use)', bg: '#FFEDD5', color: '#EA580C' },
+};
+
+const CATEGORY_ICON_MAP = {
+  pets: 'fa-paw',
+  eco: 'fa-seedling',
+  directions_car: 'fa-car',
+  school: 'fa-graduation-cap',
+  sports_soccer: 'fa-futbol',
+  palette: 'fa-palette',
+  music_note: 'fa-music',
+  restaurant: 'fa-utensils',
+  record_voice_over: 'fa-microphone-lines',
+  hearing: 'fa-ear-listen',
+  graphic_eq: 'fa-waveform-lines',
+  volume_up: 'fa-volume-high',
+  merge_type: 'fa-code-branch',
+  update: 'fa-clock-rotate-left',
+  transform: 'fa-shuffle',
+  people: 'fa-users',
+  menu_book: 'fa-book-open',
+  quiz: 'fa-circle-question',
+  alt_route: 'fa-route',
+  place: 'fa-location-dot',
+  sports_esports: 'fa-gamepad',
+  forum: 'fa-comments',
+  handshake: 'fa-handshake',
+  sentiment_satisfied_alt: 'fa-face-smile',
+  flutter_dash: 'fa-dove',
+  fastfood: 'fa-burger',
+  weekend: 'fa-couch',
+  checkroom: 'fa-shirt',
+  work: 'fa-briefcase',
+  water: 'fa-water',
+  bug_report: 'fa-bug',
+  soup_kitchen: 'fa-bowl-rice',
+  category: 'fa-shapes',
+  wb_sunny: 'fa-sun',
+  celebration: 'fa-champagne-glasses',
+  auto_awesome: 'fa-wand-magic-sparkles',
+  movie: 'fa-film',
+  toys: 'fa-robot',
+  public: 'fa-earth-americas',
+};
+
 let state = {
   stats: {},
   categories: [],
@@ -8,6 +58,8 @@ let state = {
   activeTab: 'overview',
   activeMatrixLang: 'en',
   activeModalLang: 'en',
+  selectedCategoryDomain: 'all',
+  selectedCardDomain: '',
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -157,12 +209,44 @@ function renderCards() {
   filterCards();
 }
 
+function onCardDomainFilterChanged() {
+  const domain = document.getElementById('cardDomainFilterSelect')?.value || '';
+  state.selectedCardDomain = domain;
+  populateCategoryFilterDropdown(domain);
+  filterCards();
+}
+
+function populateCategoryFilterDropdown(domain) {
+  const filterSelect = document.getElementById('categoryFilterSelect');
+  if (!filterSelect) return;
+  const currentVal = filterSelect.value;
+
+  let cats = state.categories;
+  if (domain) {
+    cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === domain.toLowerCase());
+  }
+
+  const options = cats.map(c => `<option value="${c.id}">${escapeHtml(c.name_en)} (${escapeHtml(c.name_ta || '')})</option>`).join('');
+  filterSelect.innerHTML = '<option value="">All Categories' + (domain ? ` (${cats.length})` : '') + '</option>' + options;
+
+  if (cats.some(c => c.id == currentVal)) {
+    filterSelect.value = currentVal;
+  } else {
+    filterSelect.value = '';
+  }
+}
+
 function filterCards() {
   const query = (document.getElementById('cardSearchInput').value || '').toLowerCase();
-  const selectedCat = document.getElementById('categoryFilterSelect').value;
+  const selectedDomain = (document.getElementById('cardDomainFilterSelect')?.value || '').toLowerCase();
+  const selectedCat = document.getElementById('categoryFilterSelect')?.value;
   const container = document.getElementById('cardsContainer');
 
   const filtered = state.cards.filter(c => {
+    const cat = state.categories.find(k => k.id === c.category_id);
+    const cardDomain = (c.domain || cat?.domain || 'semantic').toLowerCase();
+
+    if (selectedDomain && cardDomain !== selectedDomain) return false;
     if (selectedCat && c.category_id != selectedCat) return false;
     if (query) {
       const en = (c.title_en || '').toLowerCase();
@@ -185,29 +269,42 @@ function filterCards() {
   }
 
   container.innerHTML = filtered.map(c => {
-    const cat = state.categories.find(k => k.id === c.category_id) || { name_en: 'General' };
+    const cat = state.categories.find(k => k.id === c.category_id) || { name_en: 'General', domain: 'semantic' };
+    const domKey = (c.domain || cat.domain || 'semantic').toLowerCase();
+    const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: domKey, bg: '#F1F5F9', color: '#475569' };
     const attrs = c.attributes || {};
     const attrList = c.attributes_list || Object.values(attrs);
-    const uploadedImagesCount = (c.image_url ? 1 : 0) + attrList.filter(a => a.image_url || a.attribute_image).length;
+    const uploadedImagesCount = (c.image_url ? 1 : 0) + attrList.filter(a => a && (a.image_url || a.attribute_image)).length;
     const subnames = [c.title_ta, c.title_hi, c.title_ml].filter(Boolean).join(' • ');
+    const isSemanticCard = domKey === 'semantic';
+    const imageCountTag = isSemanticCard
+      ? `${uploadedImagesCount}/7 Images Loaded`
+      : `${c.image_url ? 1 : 0}/1 Image Loaded`;
+    const editBtnTitle = isSemanticCard ? 'Edit Flashcard (7 Images)' : 'Edit Flashcard';
 
     return `
       <div class="flashcard-item">
         <div class="card-img-wrap">
           <img src="${c.image_url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(c.title_en || c.name)}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'">
-          <span class="card-category-badge">${escapeHtml(cat.name_en)}</span>
+          <div style="position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+            <span style="background:${domBadge.bg}; color:${domBadge.color}; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.15);">
+              ${escapeHtml(domBadge.label)}
+            </span>
+            <span class="card-category-badge" style="position:static;">${escapeHtml(cat.name_en)}</span>
+          </div>
         </div>
         <div class="card-content">
           <h4 class="card-title">${escapeHtml(c.title_en || c.name)}</h4>
           ${c.subcategory ? `<span class="card-subcategory-tag"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(c.subcategory)}</span>` : ''}
           <p class="card-subtitles" style="margin-top:6px;">${escapeHtml(subnames || 'Multi-lingual ready')}</p>
+          ${isSemanticCard ? `
           <div class="concept-count-tag" style="margin-top:8px;">
             <i class="fa-solid fa-images"></i>
-            <span>${uploadedImagesCount}/7 Images Loaded</span>
-          </div>
+            <span>${imageCountTag}</span>
+          </div>` : ''}
         </div>
         <div class="card-actions-bar">
-          <button class="btn-icon" title="Edit Flashcard (7 Images)" onclick="openEditCardModal(${c.id})">
+          <button class="btn-icon" title="${editBtnTitle}" onclick="openEditCardModal(${c.id})">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
           <button class="btn-icon delete" title="Delete Flashcard" onclick="deleteCard(${c.id}, '${escapeHtml(c.title_en || c.name)}')">
@@ -219,28 +316,33 @@ function filterCards() {
   }).join('');
 }
 
+// FILTER CATEGORIES BY DOMAIN
+function filterCategoriesByDomain(domain) {
+  state.selectedCategoryDomain = domain;
+  document.querySelectorAll('.domain-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-domain') === domain);
+  });
+  renderCategories();
+}
+
 // RENDER CATEGORIES
 function renderCategories() {
   const container = document.getElementById('categoriesContainer');
-  if (state.categories.length === 0) {
-    container.innerHTML = '<p class="text-muted">No categories available.</p>';
+  let cats = state.categories;
+  if (state.selectedCategoryDomain && state.selectedCategoryDomain !== 'all') {
+    cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === state.selectedCategoryDomain.toLowerCase());
+  }
+
+  if (cats.length === 0) {
+    container.innerHTML = '<p class="text-muted" style="grid-column: 1/-1; text-align:center; padding: 24px;">No categories found for this domain.</p>';
     return;
   }
 
-  const iconMap = {
-    pets: 'fa-paw',
-    eco: 'fa-seedling',
-    directions_car: 'fa-car',
-    school: 'fa-graduation-cap',
-    sports_soccer: 'fa-futbol',
-    palette: 'fa-palette',
-    music_note: 'fa-music',
-    restaurant: 'fa-utensils',
-  };
-
-  container.innerHTML = state.categories.map(cat => {
-    const iconClass = iconMap[cat.icon_name] || 'fa-folder';
+  container.innerHTML = cats.map(cat => {
+    const iconClass = CATEGORY_ICON_MAP[cat.icon_name] || 'fa-folder';
     const subnames = [cat.name_ta, cat.name_hi, cat.name_ml].filter(Boolean).join(' • ');
+    const domKey = (cat.domain || 'semantic').toLowerCase();
+    const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: cat.domain || 'Semantic', bg: '#F1F5F9', color: '#475569' };
 
     return `
       <div class="category-card" style="border-left: 4px solid ${escapeHtml(cat.color_hex || '#4CAF50')};">
@@ -248,8 +350,13 @@ function renderCategories() {
           <div class="category-icon-box" style="background-color: ${escapeHtml(cat.color_hex || '#E8F5E9')}; color: #1E293B;">
             <i class="fa-solid ${iconClass}"></i>
           </div>
-          <div>
-            <h4 class="category-title">${escapeHtml(cat.name_en)}</h4>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+              <h4 class="category-title">${escapeHtml(cat.name_en)}</h4>
+              <span style="background:${domBadge.bg}; color:${domBadge.color}; font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px; white-space:nowrap;">
+                ${escapeHtml(domBadge.label)}
+              </span>
+            </div>
             <p class="category-subnames">${escapeHtml(subnames || 'Collection Deck')}</p>
             ${cat.description ? `<p style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(cat.description)}</p>` : ''}
           </div>
@@ -266,17 +373,22 @@ function renderCategories() {
   }).join('');
 }
 
-// RENDER 6-CONCEPT MATRIX
+// RENDER 6-CONCEPT MATRIX (Semantic Domain only)
 function renderConceptsMatrix() {
   const tbody = document.getElementById('conceptsMatrixBody');
   const lang = state.activeMatrixLang;
 
-  if (state.cards.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px;">No cards found to display in matrix.</td></tr>';
+  const semanticCards = state.cards.filter(c => {
+    const cat = state.categories.find(k => k.id === c.category_id);
+    return (c.domain || cat?.domain || 'semantic').toLowerCase() === 'semantic';
+  });
+
+  if (semanticCards.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:32px;">No semantic cards found to display in matrix.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = state.cards.map(c => {
+  tbody.innerHTML = semanticCards.map(c => {
     const attrs = c.attributes || {};
     const getVal = (key) => {
       const item = attrs[key];
@@ -651,13 +763,93 @@ function updateSlotPreview(slot) {
 
 // POPULATE DROPDOWNS
 function populateCategoryDropdowns() {
-  const filterSelect = document.getElementById('categoryFilterSelect');
+  const domain = state.selectedCardDomain || '';
+  populateCategoryFilterDropdown(domain);
+  const cardDomain = document.getElementById('cardFormDomain')?.value || 'semantic';
+  populateCardCategorySelect(cardDomain);
+}
+
+function onCardFormDomainChanged() {
+  const domain = document.getElementById('cardFormDomain')?.value || '';
+  populateCardCategorySelect(domain);
+  toggleCardAttributesVisibility(domain);
+}
+
+function toggleCardAttributesVisibility(domain) {
+  const isSemantic = (domain || '').toLowerCase() === 'semantic';
+  const attrCol = document.getElementById('cardAttributesCol');
+  const formGrid = document.getElementById('cardFormGrid');
+  const modalContainer = document.querySelector('#cardModal .modal-container');
+  const modalTitle = document.getElementById('cardModalTitle');
+  const saveBtn = document.getElementById('saveCardBtn');
+  const notice = document.getElementById('domainAttrNotice');
+  const isEdit = Boolean(document.getElementById('cardFormId')?.value);
+
+  if (attrCol) {
+    attrCol.style.display = isSemantic ? '' : 'none';
+  }
+  if (formGrid) {
+    if (isSemantic) {
+      formGrid.classList.remove('single-col');
+    } else {
+      formGrid.classList.add('single-col');
+    }
+  }
+  if (modalContainer) {
+    if (isSemantic) {
+      modalContainer.classList.add('large-modal');
+      modalContainer.style.maxWidth = '';
+    } else {
+      modalContainer.classList.remove('large-modal');
+      modalContainer.style.maxWidth = '680px';
+    }
+  }
+  if (notice) {
+    notice.style.display = isSemantic ? 'none' : 'block';
+  }
+  if (!isEdit && modalTitle) {
+    const domainNames = {
+      phonology: 'Phonology',
+      morphology: 'Morphology',
+      syntax: 'Syntax',
+      semantic: 'Semantic',
+      pragmatic: 'Pragmatic'
+    };
+    const domLabel = domainNames[(domain || '').toLowerCase()] || domain || 'Target Domain';
+    modalTitle.textContent = isSemantic 
+      ? 'Create New Flashcard (7 Images)' 
+      : `Create New Flashcard (${domLabel})`;
+  }
+  if (saveBtn) {
+    saveBtn.textContent = isEdit 
+      ? 'Save Changes' 
+      : (isSemantic ? 'Save Flashcard (7 Images)' : 'Save Flashcard');
+  }
+}
+
+function populateCardCategorySelect(domain, selectedCatId = null) {
   const formSelect = document.getElementById('cardFormCategory');
+  if (!formSelect) return;
 
-  const options = state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name_en)} (${escapeHtml(c.name_ta || '')})</option>`).join('');
+  let cats = state.categories;
+  if (domain) {
+    cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === domain.toLowerCase());
+  }
 
-  filterSelect.innerHTML = '<option value="">All Categories</option>' + options;
-  formSelect.innerHTML = options;
+  if (cats.length === 0) {
+    formSelect.innerHTML = `<option value="">No categories found for ${escapeHtml(domain || 'this domain')} - Add one first</option>`;
+    return;
+  }
+
+  formSelect.innerHTML = cats.map(c => 
+    `<option value="${c.id}">${escapeHtml(c.name_en)} (${escapeHtml(c.name_ta || '')})</option>`
+  ).join('');
+
+  if (selectedCatId && cats.some(c => c.id == selectedCatId)) {
+    formSelect.value = selectedCatId;
+  } else if (cats.length > 0) {
+    formSelect.value = cats[0].id;
+  }
 }
 
 // DEFAULT ATTRIBUTE DEFINITIONS
@@ -678,6 +870,20 @@ function openNewCardModal() {
   document.getElementById('cardFormImageUrl').value = '';
   document.getElementById('cardModalTitle').textContent = 'Create New Flashcard (7 Images)';
   document.getElementById('saveCardBtn').textContent = 'Create Flashcard';
+
+  // Domain & Category initialization
+  let initialDomain = 'semantic';
+  if (state.selectedCardDomain) {
+    initialDomain = state.selectedCardDomain;
+  } else if (state.selectedCategoryDomain && state.selectedCategoryDomain !== 'all') {
+    initialDomain = state.selectedCategoryDomain;
+  }
+
+  if (document.getElementById('cardFormDomain')) {
+    document.getElementById('cardFormDomain').value = initialDomain;
+  }
+  populateCardCategorySelect(initialDomain);
+  toggleCardAttributesVisibility(initialDomain);
 
   // Reset main trigger image preview
   updateSlotPreview('main');
@@ -705,7 +911,17 @@ function openEditCardModal(cardId) {
   const card = state.cards.find(c => c.id === cardId);
   if (!card) return;
 
+  const cat = state.categories.find(k => k.id === card.category_id);
+  const dom = (cat?.domain || card.domain || 'semantic').toLowerCase();
+
   document.getElementById('cardFormId').value = card.id;
+
+  if (document.getElementById('cardFormDomain')) {
+    document.getElementById('cardFormDomain').value = dom;
+  }
+  populateCardCategorySelect(dom, card.category_id);
+  toggleCardAttributesVisibility(dom);
+
   document.getElementById('cardFormCategory').value = card.category_id;
   document.getElementById('cardFormSubcategory').value = card.subcategory || '';
   document.getElementById('cardFormTitleEn').value = card.title_en || card.name || '';
@@ -774,42 +990,53 @@ async function handleCardSubmit(e) {
   const id = document.getElementById('cardFormId').value;
   const isEdit = Boolean(id);
 
+  const domain = (document.getElementById('cardFormDomain')?.value || 'semantic').toLowerCase();
+  const isSemantic = domain === 'semantic';
+
   const attributesList = [];
   const attributesDict = {};
 
-  for (let i = 1; i <= 6; i++) {
-    const slot = `attr_${i}`;
-    const def = DEFAULT_ATTRIBUTES[i - 1];
-    const name = (document.getElementById(`${slot}_name`).value || def.name).trim();
-    const imageUrl = (document.getElementById(`${slot}_image`).value || '').trim();
-    const en = (document.getElementById(`${slot}_en`).value || '').trim();
-    const ta = (document.getElementById(`${slot}_ta`).value || '').trim();
-    const hi = (document.getElementById(`${slot}_hi`).value || '').trim();
-    const ml = (document.getElementById(`${slot}_ml`).value || '').trim();
+  if (isSemantic) {
+    for (let i = 1; i <= 6; i++) {
+      const slot = `attr_${i}`;
+      const def = DEFAULT_ATTRIBUTES[i - 1];
+      const name = (document.getElementById(`${slot}_name`).value || def.name).trim();
+      const imageUrl = (document.getElementById(`${slot}_image`).value || '').trim();
+      const en = (document.getElementById(`${slot}_en`).value || '').trim();
+      const ta = (document.getElementById(`${slot}_ta`).value || '').trim();
+      const hi = (document.getElementById(`${slot}_hi`).value || '').trim();
+      const ml = (document.getElementById(`${slot}_ml`).value || '').trim();
 
-    const key = def.key || slot;
-    const attrObj = {
-      key: key,
-      name: name,
-      label: name,
-      image_url: imageUrl,
-      attribute_image: imageUrl,
-      value_en: en,
-      value_ta: ta,
-      value_hi: hi,
-      value_ml: ml,
-      en: en,
-      ta: ta,
-      hi: hi,
-      ml: ml,
-    };
+      const key = def.key || slot;
+      const attrObj = {
+        key: key,
+        name: name,
+        label: name,
+        image_url: imageUrl,
+        attribute_image: imageUrl,
+        value_en: en,
+        value_ta: ta,
+        value_hi: hi,
+        value_ml: ml,
+        en: en,
+        ta: ta,
+        hi: hi,
+        ml: ml,
+      };
 
-    attributesList.push(attrObj);
-    attributesDict[key] = attrObj;
+      attributesList.push(attrObj);
+      attributesDict[key] = attrObj;
+    }
+  }
+
+  const catVal = document.getElementById('cardFormCategory').value;
+  if (!catVal) {
+    showToast('Please select a valid category deck for the chosen domain', 'error');
+    return;
   }
 
   const payload = {
-    category_id: parseInt(document.getElementById('cardFormCategory').value, 10),
+    category_id: parseInt(catVal, 10),
     subcategory: document.getElementById('cardFormSubcategory').value.trim(),
     name: document.getElementById('cardFormTitleEn').value.trim(),
     title_en: document.getElementById('cardFormTitleEn').value.trim(),
@@ -838,7 +1065,7 @@ async function handleCardSubmit(e) {
       throw new Error(errData.detail || 'Server error while saving card');
     }
 
-    showToast(isEdit ? 'Flashcard updated with 7 images!' : 'Flashcard created with 7 images!', 'success');
+    showToast(isEdit ? 'Flashcard updated successfully!' : 'Flashcard created with domain & category!', 'success');
     closeModal('cardModal');
     loadDashboardData();
   } catch (err) {
@@ -863,11 +1090,14 @@ async function deleteCard(id, title) {
 function openNewCategoryModal() {
   document.getElementById('catForm').reset();
   document.getElementById('catFormId').value = '';
+  if (document.getElementById('catFormDomain')) {
+    document.getElementById('catFormDomain').value = (state.selectedCategoryDomain && state.selectedCategoryDomain !== 'all') ? state.selectedCategoryDomain : 'semantic';
+  }
   if (document.getElementById('catFormDesc')) document.getElementById('catFormDesc').value = '';
   document.getElementById('catFormColor').value = '#E8F5E9';
   document.getElementById('colorHexDisplay').textContent = '#E8F5E9';
-  document.getElementById('catModalTitle').textContent = 'Create New Category';
-  document.getElementById('saveCatBtn').textContent = 'Create Category';
+  document.getElementById('catModalTitle').textContent = 'Connect & Create Category Deck';
+  document.getElementById('saveCatBtn').textContent = 'Save Category';
   openModal('catModal');
 }
 
@@ -876,6 +1106,9 @@ function openEditCategoryModal(catId) {
   if (!cat) return;
 
   document.getElementById('catFormId').value = cat.id;
+  if (document.getElementById('catFormDomain')) {
+    document.getElementById('catFormDomain').value = cat.domain || 'semantic';
+  }
   document.getElementById('catFormNameEn').value = cat.name_en || '';
   document.getElementById('catFormNameTa').value = cat.name_ta || '';
   document.getElementById('catFormNameHi').value = cat.name_hi || '';
@@ -900,6 +1133,7 @@ async function handleCategorySubmit(e) {
     name_ta: document.getElementById('catFormNameTa').value.trim(),
     name_hi: document.getElementById('catFormNameHi').value.trim(),
     name_ml: document.getElementById('catFormNameMl').value.trim(),
+    domain: document.getElementById('catFormDomain')?.value || 'semantic',
     description: (document.getElementById('catFormDesc')?.value || '').trim(),
     icon_name: document.getElementById('catFormIcon').value,
     color_hex: document.getElementById('catFormColor').value,

@@ -7,6 +7,7 @@ class CardDetailScreen extends StatefulWidget {
   final int? cardId;
   final String cardName;
   final String imageUrl;
+  final String? domain;
   final Map<String, dynamic>? cardData;
   final List<Map<String, dynamic>> attributes;
 
@@ -15,6 +16,7 @@ class CardDetailScreen extends StatefulWidget {
     this.cardId,
     required this.cardName,
     this.imageUrl = '',
+    this.domain,
     this.cardData,
     this.attributes = const [],
   });
@@ -32,6 +34,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   String _mainImageUrl = '';
   String _cardTitle = '';
   String _subcategory = '';
+  String _domain = 'semantic';
+
+  bool get _isSemantic => _domain.toLowerCase() == 'semantic';
 
   final List<String> _languages = ['English', 'Tamil', 'Hindi', 'Malayalam'];
 
@@ -41,6 +46,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     _cardData = widget.cardData;
     _cardTitle = widget.cardName;
     _mainImageUrl = widget.imageUrl;
+    _domain = (widget.domain ?? widget.cardData?['domain'] ?? 'semantic').toString().toLowerCase();
 
     if (_cardData != null) {
       _parseCardData(_cardData!);
@@ -56,6 +62,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   void _parseCardData(Map<String, dynamic> data) {
     _cardTitle = (data['name'] ?? data['title_en'] ?? widget.cardName).toString();
     _subcategory = (data['subcategory'] ?? '').toString();
+    if (data['domain'] != null && data['domain'].toString().isNotEmpty) {
+      _domain = data['domain'].toString().toLowerCase();
+    }
     _mainImageUrl = apiClient.imageUrl((data['image_url'] ?? data['trigger_image'] ?? data['card_image'] ?? widget.imageUrl) as String?);
 
     if (data['attributes_list'] is List && (data['attributes_list'] as List).isNotEmpty) {
@@ -432,9 +441,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
-    final attributes = _get6Attributes();
+    final attributes = _isSemantic ? _get6Attributes() : <Map<String, dynamic>>[];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -500,10 +511,11 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                                     : _selectedLanguage == 'Malayalam'
                                         ? 'ml'
                                         : 'en';
+                            final messenger = ScaffoldMessenger.of(context);
                             await apiClient.fetchTTS(title, langCode);
                             if (mounted) {
                               setState(() => _isPlayingAudio = false);
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(
                                   content: Text('Playing pronunciation: $title ($_selectedLanguage)'),
                                   duration: const Duration(seconds: 2),
@@ -669,26 +681,27 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 20),
-
-                          // ---- 6 Concept / Attribute Buttons Grid (3 columns x 2 rows) ----
-                          GridView.count(
-                            crossAxisCount: 3,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 1.15,
-                            children: attributes.map((attr) {
-                              final name = (attr['name'] ?? attr['label'] ?? 'Attribute').toString();
-                              return _buildConceptCard(
-                                icon: _iconForAttribute(name),
-                                label: name,
-                                hasImage: (attr['image_url'] ?? attr['attribute_image'] ?? '').toString().isNotEmpty,
-                                onTap: () => _showAttributeImageModal(attr),
-                              );
-                            }).toList(),
-                          ),
+                          if (_isSemantic) ...[
+                            const SizedBox(height: 20),
+                            // ---- 6 Concept / Attribute Buttons Grid (Semantic Domain Only) ----
+                            GridView.count(
+                              crossAxisCount: 3,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 1.15,
+                              children: attributes.map((attr) {
+                                final name = (attr['name'] ?? attr['label'] ?? 'Attribute').toString();
+                                return _buildConceptCard(
+                                  icon: _iconForAttribute(name),
+                                  label: name,
+                                  hasImage: (attr['image_url'] ?? attr['attribute_image'] ?? '').toString().isNotEmpty,
+                                  onTap: () => _showAttributeImageModal(attr),
+                                );
+                              }).toList(),
+                            ),
+                          ],
 
                           const SizedBox(height: 24),
 

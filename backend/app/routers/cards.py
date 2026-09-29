@@ -46,8 +46,10 @@ def format_card_response(card: Card, db: Session) -> dict:
         attr_list.append(attr_data)
     
     category_name = ""
+    domain = "semantic"
     if card.category:
         category_name = card.category.name_en
+        domain = card.category.domain or "semantic"
 
     title = card.title_en or ""
     image = card.image_url or ""
@@ -61,6 +63,7 @@ def format_card_response(card: Card, db: Session) -> dict:
         "title_ml": card.title_ml or "",
         "category_id": card.category_id,
         "category_name": category_name,
+        "domain": domain,
         "subcategory": card.subcategory or "",
         "image_url": image,
         "trigger_image": image,
@@ -71,10 +74,12 @@ def format_card_response(card: Card, db: Session) -> dict:
     }
 
 @router.get("", response_model=List[CardResponse])
-def get_cards(category_id: Optional[int] = None, db: Session = Depends(get_db)):
+def get_cards(category_id: Optional[int] = None, domain: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(Card)
     if category_id is not None:
         query = query.filter(Card.category_id == category_id)
+    if domain is not None and domain.strip():
+        query = query.join(Category).filter(Category.domain == domain.strip().lower())
     cards = query.all()
     return [format_card_response(c, db) for c in cards]
 

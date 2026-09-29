@@ -40,7 +40,7 @@ def _load_image_from_path_or_url(image_url: str):
     if image_url.startswith("http://") or image_url.startswith("https://"):
         try:
             import httpx
-            resp = httpx.get(image_url, timeout=5.0)
+            resp = httpx.get(image_url, timeout=30.0)
             if resp.status_code == 200:
                 nparr = np.frombuffer(resp.content, np.uint8)
                 img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)

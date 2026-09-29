@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from ..database import get_db
 from ..models import Category, Card
 from ..schemas import CategoryResponse, CategoryCreate, CategoryUpdate
@@ -17,13 +17,17 @@ def format_category_response(cat: Category, db: Session) -> dict:
         "name_ml": cat.name_ml or "",
         "icon_name": cat.icon_name or "pets",
         "color_hex": cat.color_hex or "#E8F5E9",
+        "domain": cat.domain or "semantic",
         "description": cat.description or "",
         "card_count": card_count
     }
 
 @router.get("", response_model=List[CategoryResponse])
-def get_categories(db: Session = Depends(get_db)):
-    categories = db.query(Category).all()
+def get_categories(domain: Optional[str] = Query(None), db: Session = Depends(get_db)):
+    query = db.query(Category)
+    if domain:
+        query = query.filter(Category.domain == domain.strip().lower())
+    categories = query.all()
     return [format_category_response(cat, db) for cat in categories]
 
 @router.get("/{category_id}", response_model=CategoryResponse)
@@ -45,12 +49,17 @@ def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
             detail="Category English name (name_en) cannot be empty"
         )
 
-    # Check for duplicate category name (case-insensitive)
-    existing = db.query(Category).filter(Category.name_en.ilike(name_clean)).first()
+    domain_clean = (payload.domain or "semantic").strip().lower()
+
+    # Check for duplicate category name within the same domain (case-insensitive)
+    existing = db.query(Category).filter(
+        Category.name_en.ilike(name_clean),
+        Category.domain == domain_clean
+    ).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Category with name '{name_clean}' already exists"
+            detail=f"Category with name '{name_clean}' already exists in domain '{domain_clean}'"
         )
 
     new_cat = Category(
@@ -61,11 +70,11 @@ def create_category(payload: CategoryCreate, db: Session = Depends(get_db)):
         description=(payload.description or "").strip(),
         icon_name=(payload.icon_name or "pets").strip(),
         color_hex=(payload.color_hex or "#E8F5E9").strip(),
+        domain=domain_clean,
     )
     db.add(new_cat)
     db.commit()
     db.refresh(new_cat)
-
     return format_category_response(new_cat, db)
 
 @router.put("/{category_id}", response_model=CategoryResponse)
@@ -77,6 +86,8 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
             detail=f"Category with ID {category_id} not found"
         )
 
+    target_domain = (payload.domain or category.domain or "semantic").strip().lower()
+
     if payload.name_en is not None:
         name_clean = payload.name_en.strip()
         if not name_clean:
@@ -84,15 +95,16 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Category English name cannot be empty"
             )
-        # Check if another category already has this name
+        # Check if another category already has this name in the target domain
         existing = db.query(Category).filter(
             Category.name_en.ilike(name_clean),
+            Category.domain == target_domain,
             Category.id != category_id
         ).first()
         if existing:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Category with name '{name_clean}' already exists"
+                detail=f"Category with name '{name_clean}' already exists in domain '{target_domain}'"
             )
         category.name_en = name_clean
 
@@ -108,6 +120,8 @@ def update_category(category_id: int, payload: CategoryUpdate, db: Session = Dep
         category.icon_name = payload.icon_name.strip()
     if payload.color_hex is not None:
         category.color_hex = payload.color_hex.strip()
+    if payload.domain is not None:
+        category.domain = payload.domain.strip().lower()
 
     db.commit()
     db.refresh(category)
@@ -126,4 +140,3 @@ def delete_category(category_id: int, db: Session = Depends(get_db)):
     db.delete(category)
     db.commit()
     return {"message": f"Category '{category_name}' deleted successfully", "id": category_id}
-

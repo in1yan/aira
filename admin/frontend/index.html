@@ -249,6 +249,14 @@
                 <input type="text" id="cardSearchInput" placeholder="Search by title (English, Tamil, Hindi, Malayalam)..." oninput="filterCards()">
               </div>
               <div class="filter-controls">
+                <select id="cardDomainFilterSelect" onchange="onCardDomainFilterChanged()">
+                  <option value="">All Domains</option>
+                  <option value="phonology">Phonology (Form)</option>
+                  <option value="morphology">Morphology (Form)</option>
+                  <option value="syntax">Syntax (Form)</option>
+                  <option value="semantic">Semantic (Content)</option>
+                  <option value="pragmatic">Pragmatic (Use)</option>
+                </select>
                 <select id="categoryFilterSelect" onchange="filterCards()">
                   <option value="">All Categories</option>
                 </select>
@@ -275,6 +283,16 @@
               <button class="btn btn-primary" onclick="openNewCategoryModal()">
                 <i class="fa-solid fa-plus"></i> Add Category
               </button>
+            </div>
+            <div class="panel-toolbar" style="border-bottom:1px solid var(--border-color); padding: 12px 20px;">
+              <div class="domain-filters" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="lang-btn active domain-filter-btn" data-domain="all" onclick="filterCategoriesByDomain('all')">All Domains</button>
+                <button class="lang-btn domain-filter-btn" data-domain="phonology" onclick="filterCategoriesByDomain('phonology')">Phonology (Form)</button>
+                <button class="lang-btn domain-filter-btn" data-domain="morphology" onclick="filterCategoriesByDomain('morphology')">Morphology (Form)</button>
+                <button class="lang-btn domain-filter-btn" data-domain="syntax" onclick="filterCategoriesByDomain('syntax')">Syntax (Form)</button>
+                <button class="lang-btn domain-filter-btn" data-domain="semantic" onclick="filterCategoriesByDomain('semantic')">Semantic (Content)</button>
+                <button class="lang-btn domain-filter-btn" data-domain="pragmatic" onclick="filterCategoriesByDomain('pragmatic')">Pragmatic (Use)</button>
+              </div>
             </div>
             <div class="categories-grid" id="categoriesContainer">
               <!-- Rendered via JS -->
@@ -388,15 +406,37 @@
       <form id="cardForm" onsubmit="handleCardSubmit(event)">
         <input type="hidden" id="cardFormId">
         <div class="modal-body">
-          <div class="form-grid">
+          <div class="form-grid" id="cardFormGrid">
             <!-- Left: General & Trigger Image -->
             <div class="form-col">
               <h4 class="form-section-title"><i class="fa-solid fa-info-circle"></i> 1. Card Identity & Trigger Image</h4>
               
+              <div class="form-group" style="background: rgba(33, 150, 243, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed #2196F3; margin-bottom: 12px;">
+                <label style="font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                  <i class="fa-solid fa-layer-group" style="color: #2196F3;"></i> 1. Target Domain *
+                </label>
+                <select id="cardFormDomain" onchange="onCardFormDomainChanged()" required style="font-weight: 600; width: 100%;">
+                  <option value="">-- Choose Speech-Language Domain --</option>
+                  <option value="semantic">Semantic (Content — Flashcards & Dimensions)</option>
+                  <option value="phonology">Phonology (Form — Photo Articulation)</option>
+                  <option value="morphology">Morphology (Form — Flash Cards & Suffixes)</option>
+                  <option value="syntax">Syntax (Form — Stimulation Stories)</option>
+                  <option value="pragmatic">Pragmatic (Use — Power Play & Social Communication)</option>
+                </select>
+                <span style="font-size: 11px; color: var(--text-muted); display: block; margin-top: 4px;">
+                  Selecting a domain automatically filters the available category decks below.
+                </span>
+                <div id="domainAttrNotice" style="display:none; padding: 7px 10px; border-radius: 6px; background: #EFF6FF; border: 1px solid #BFDBFE; margin-top: 8px;">
+                  <span style="font-size: 11px; color: #1D4ED8; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                    <i class="fa-solid fa-circle-info"></i> Card attributes are only needed in the Semantic domain. Attributes are disabled for this domain.
+                  </span>
+                </div>
+              </div>
+
               <div class="form-group">
-                <label>Category *</label>
+                <label style="font-weight: 700;">2. Category Deck *</label>
                 <select id="cardFormCategory" required>
-                  <!-- Populated dynamically -->
+                  <!-- Populated dynamically based on domain -->
                 </select>
               </div>
 
@@ -448,8 +488,8 @@
               </div>
             </div>
 
-            <!-- Right: 6 Attributes & Attribute Images -->
-            <div class="form-col">
+            <!-- Right: 6 Attributes & Attribute Images (Only displayed for Semantic domain) -->
+            <div class="form-col" id="cardAttributesCol">
               <div class="concepts-header">
                 <h4 class="form-section-title"><i class="fa-solid fa-brain"></i> 2. Six Attribute Images & Details</h4>
                 <div class="modal-lang-tabs">
@@ -664,6 +704,21 @@
       <form id="catForm" onsubmit="handleCategorySubmit(event)">
         <input type="hidden" id="catFormId">
         <div class="modal-body">
+          <div class="form-group" style="background: rgba(76, 175, 80, 0.06); padding: 12px; border-radius: 8px; border: 1px dashed var(--primary); margin-bottom: 14px;">
+            <label style="font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-diagram-project" style="color: var(--primary);"></i> Connect to Speech-Language Domain *
+            </label>
+            <select id="catFormDomain" required style="font-weight: 600; width: 100%;">
+              <option value="semantic">Semantic (Content — Vocabulary, Concepts & Attributes)</option>
+              <option value="phonology">Phonology (Form — Articulation & Sound Discrimination)</option>
+              <option value="morphology">Morphology (Form — Word Structure, Plurals & Tenses)</option>
+              <option value="syntax">Syntax (Form — Sentence Building & Stimulation Stories)</option>
+              <option value="pragmatic">Pragmatic (Use — Social Communication & Power Play)</option>
+            </select>
+            <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 4px;">
+              Connects this deck into the Bloom & Lahey Language Acquisition triad (Content, Form, Use).
+            </span>
+          </div>
           <div class="form-group">
             <label>English Category Name *</label>
             <input type="text" id="catFormNameEn" required placeholder="e.g. Birds, Musical Instruments">
@@ -687,14 +742,45 @@
           <div class="form-group">
             <label>Category Icon</label>
             <select id="catFormIcon">
-              <option value="pets">Pets / Animals</option>
-              <option value="eco">Eco / Plants & Fruits</option>
-              <option value="directions_car">Vehicles / Transport</option>
-              <option value="school">School / Learning</option>
-              <option value="sports_soccer">Sports / Games</option>
-              <option value="palette">Arts & Colors</option>
-              <option value="music_note">Music</option>
-              <option value="restaurant">Food & Dining</option>
+              <option value="pets">Pets / Animals (pets)</option>
+              <option value="eco">Eco / Plants & Fruits (eco)</option>
+              <option value="directions_car">Vehicles / Transport (directions_car)</option>
+              <option value="school">School / Learning (school)</option>
+              <option value="sports_soccer">Sports / Games (sports_soccer)</option>
+              <option value="palette">Arts & Colors (palette)</option>
+              <option value="music_note">Music (music_note)</option>
+              <option value="restaurant">Food & Dining (restaurant)</option>
+              <option value="record_voice_over">Speech / Articulation (record_voice_over)</option>
+              <option value="hearing">Hearing / Listening (hearing)</option>
+              <option value="graphic_eq">Sound Wave / Phonics (graphic_eq)</option>
+              <option value="volume_up">Audio / Word Endings (volume_up)</option>
+              <option value="merge_type">Grammar / Suffixes (merge_type)</option>
+              <option value="update">Verb Tenses (update)</option>
+              <option value="transform">Prefixes & Inflections (transform)</option>
+              <option value="people">Pronouns & People (people)</option>
+              <option value="menu_book">Sentence Sequencing / Stories (menu_book)</option>
+              <option value="quiz">Questions & Scenarios (quiz)</option>
+              <option value="alt_route">Conjunctions & Routes (alt_route)</option>
+              <option value="place">Prepositional Locations (place)</option>
+              <option value="sports_esports">Games & Turn-Taking (sports_esports)</option>
+              <option value="forum">Conversational Prompts (forum)</option>
+              <option value="handshake">Social Needs & Requests (handshake)</option>
+              <option value="sentiment_satisfied_alt">Emotion & Empathy (sentiment_satisfied_alt)</option>
+              <option value="flutter_dash">Birds / Avian (flutter_dash)</option>
+              <option value="fastfood">Food Items / Fast Food (fastfood)</option>
+              <option value="weekend">Household / Furniture (weekend)</option>
+              <option value="checkroom">Clothes / Apparel (checkroom)</option>
+              <option value="work">Occupations / Work (work)</option>
+              <option value="water">Marine / Water Animals (water)</option>
+              <option value="bug_report">Insects / Bugs (bug_report)</option>
+              <option value="soup_kitchen">Utensils / Kitchenware (soup_kitchen)</option>
+              <option value="category">Shapes / Geometric (category)</option>
+              <option value="wb_sunny">Seasons / Weather (wb_sunny)</option>
+              <option value="celebration">Festivals / Celebration (celebration)</option>
+              <option value="auto_awesome">Lord / God / Sparkles (auto_awesome)</option>
+              <option value="movie">Actors / Cinema (movie)</option>
+              <option value="toys">Cartoons / Toys (toys)</option>
+              <option value="public">States / Geography (public)</option>
             </select>
           </div>
           <div class="form-group">

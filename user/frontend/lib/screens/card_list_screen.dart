@@ -12,30 +12,96 @@ class CardListScreen extends StatefulWidget {
 
 class _CardListScreenState extends State<CardListScreen> {
   late Future<List<Map<String, dynamic>>> _cards;
+  static const Map<String, String> _domainLabels = {
+    'phonology': 'Form • Phonology Articulation',
+    'morphology': 'Form • Morphology Flash Cards',
+    'syntax': 'Form • Syntax Stimulation Stories',
+    'semantic': 'Content • Semantic Stimulation Cards',
+    'pragmatic': 'Use • Pragmatic Power Play',
+  };
+
   @override
   void initState() {
     super.initState();
-    _cards = apiClient.cards(categoryId: widget.category.id);
+    _cards = apiClient.cards(
+      categoryId: widget.category.id,
+      domain: widget.category.domain,
+    );
+  }
+
+  Future<void> _refreshCards() async {
+    setState(() {
+      _cards = apiClient.cards(
+        categoryId: widget.category.id,
+        domain: widget.category.domain,
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
         backgroundColor: const Color(0xFFF8FAF8),
         appBar: AppBar(
-            title: Text(widget.category.name,
-                style: const TextStyle(fontWeight: FontWeight.w700))),
-        body: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _cards,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting)
-              return const Center(child: CircularProgressIndicator());
-            if (snapshot.hasError)
-              return Center(
-                  child: Text('Could not load cards: ${snapshot.error}'));
-            final cards = snapshot.data ?? const <Map<String, dynamic>>[];
-            if (cards.isEmpty)
-              return const Center(
-                  child: Text('No published cards in this category yet.'));
+          backgroundColor: Colors.white,
+          elevation: 0.5,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.category.name,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+              ),
+              if (_domainLabels.containsKey(widget.category.domain.toLowerCase()))
+                Text(
+                  _domainLabels[widget.category.domain.toLowerCase()]!,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        body: RefreshIndicator(
+          onRefresh: _refreshCards,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _cards,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Could not load cards: ${snapshot.error}'),
+                      const SizedBox(height: 12),
+                      ElevatedButton(
+                        onPressed: _refreshCards,
+                        child: const Text('Retry'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              final cards = snapshot.data ?? const <Map<String, dynamic>>[];
+              if (cards.isEmpty) {
+                return Center(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: const [
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('No published cards in this category yet.'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
             return GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -61,14 +127,16 @@ class _CardListScreenState extends State<CardListScreen> {
                                 cardId: cardId,
                                 cardName: name,
                                 imageUrl: imageUrl,
+                                domain: widget.category.domain,
                                 cardData: card,
                                 attributes: attributes))));
               },
             );
           },
         ),
-      );
-}
+      ),
+    );
+  }
 
 class _CardTile extends StatelessWidget {
   final String name;

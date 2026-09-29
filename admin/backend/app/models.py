@@ -17,6 +17,7 @@ class Category(Base):
     __tablename__ = "categories"
 
     id = Column(Integer, primary_key=True, index=True)
+    domain = Column(String, default="semantic", index=True, nullable=False)
     name_en = Column(String, index=True, nullable=False)
     name_ta = Column(String, nullable=True)
     name_hi = Column(String, nullable=True)
