@@ -106,17 +106,23 @@ class _HomeScreenState extends State<HomeScreen>
                 // Header
                 Row(
                   children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: const Icon(
-                        Icons.auto_stories,
-                        color: Colors.white,
-                        size: 28,
+                    Image.asset(
+                      'assets/niepmd-logo.png',
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: const Icon(
+                          Icons.auto_stories,
+                          color: Colors.white,
+                          size: 26,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 14),

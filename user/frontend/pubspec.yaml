@@ -23,5 +23,8 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/
+    - assets/niepmd-logo.png
     - assets/videos/
+
 
