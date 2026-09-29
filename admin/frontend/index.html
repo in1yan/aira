@@ -433,21 +433,21 @@
                 </div>
               </div>
 
-              <div class="form-group">
-                <label style="font-weight: 700;">2. Category Deck *</label>
-                <select id="cardFormCategory" required>
+              <div class="form-group" id="cardCategoryGroup">
+                <label style="font-weight: 700;" id="cardCategoryLabel">2. Category Deck *</label>
+                <select id="cardFormCategory">
                   <!-- Populated dynamically based on domain -->
                 </select>
               </div>
 
-              <div class="form-group">
+              <div class="form-group" id="cardSubcategoryGroup">
                 <label>Subcategory</label>
                 <input type="text" id="cardFormSubcategory" placeholder="e.g. Domestic Animals, Wild Animals, Citrus Fruits">
               </div>
 
-              <div class="form-group">
-                <label>Word / Name (English) *</label>
-                <input type="text" id="cardFormTitleEn" required placeholder="e.g. Dog, Apple, Helicopter">
+              <div class="form-group" id="cardTitleGroup">
+                <label id="cardTitleLabel">Word / Name (English) *</label>
+                <input type="text" id="cardFormTitleEn" placeholder="e.g. Dog, Apple, or auto-filled file name">
               </div>
 
               <div class="form-group">
@@ -485,6 +485,9 @@
               <div class="image-preview-box" id="preview_box_main" onclick="triggerImageSlotUpload('main')" style="cursor:pointer;" title="Click to upload or replace image">
                 <img id="preview_img_main" src="" alt="Trigger Preview" style="display:none;">
                 <span id="preview_txt_main"><i class="fa-solid fa-cloud-arrow-up"></i> Click or Drag to Upload Trigger Image</span>
+                <div id="preview_filename_badge" style="display:none; margin-top:8px; padding:4px 10px; background:#F3E8FF; color:#7E22CE; border-radius:12px; font-size:11px; font-weight:700;">
+                  <i class="fa-solid fa-file-image"></i> Target File: <span id="preview_filename_txt"></span>
+                </div>
               </div>
             </div>
 

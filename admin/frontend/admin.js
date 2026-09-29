@@ -269,34 +269,44 @@ function filterCards() {
   }
 
   container.innerHTML = filtered.map(c => {
-    const cat = state.categories.find(k => k.id === c.category_id) || { name_en: 'General', domain: 'semantic' };
-    const domKey = (c.domain || cat.domain || 'semantic').toLowerCase();
+    const cat = state.categories.find(k => k.id === c.category_id);
+    const domKey = (c.domain || cat?.domain || 'semantic').toLowerCase();
     const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: domKey, bg: '#F1F5F9', color: '#475569' };
     const attrs = c.attributes || {};
     const attrList = c.attributes_list || Object.values(attrs);
     const uploadedImagesCount = (c.image_url ? 1 : 0) + attrList.filter(a => a && (a.image_url || a.attribute_image)).length;
-    const subnames = [c.title_ta, c.title_hi, c.title_ml].filter(Boolean).join(' • ');
+    const isSyntaxCard = domKey === 'syntax';
     const isSemanticCard = domKey === 'semantic';
+
+    let displayTitle = c.title_en || c.name || '';
+    if (isSyntaxCard && (!displayTitle || displayTitle === 'Untitled Card') && c.image_url) {
+      displayTitle = c.image_url.split('/').pop().split('?')[0];
+    }
+    if (!displayTitle) displayTitle = 'Untitled Card';
+
+    const subnames = [c.title_ta, c.title_hi, c.title_ml].filter(Boolean).join(' • ');
     const imageCountTag = isSemanticCard
       ? `${uploadedImagesCount}/7 Images Loaded`
       : `${c.image_url ? 1 : 0}/1 Image Loaded`;
     const editBtnTitle = isSemanticCard ? 'Edit Flashcard (7 Images)' : 'Edit Flashcard';
+    const catBadgeLabel = cat ? cat.name_en : (isSyntaxCard ? 'No Category' : 'General');
 
     return `
       <div class="flashcard-item">
         <div class="card-img-wrap">
-          <img src="${c.image_url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(c.title_en || c.name)}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'">
+          <img src="${c.image_url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(displayTitle)}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'">
           <div style="position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
             <span style="background:${domBadge.bg}; color:${domBadge.color}; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.15);">
               ${escapeHtml(domBadge.label)}
             </span>
-            <span class="card-category-badge" style="position:static;">${escapeHtml(cat.name_en)}</span>
+            <span class="card-category-badge" style="position:static;">${escapeHtml(catBadgeLabel)}</span>
           </div>
         </div>
         <div class="card-content">
-          <h4 class="card-title">${escapeHtml(c.title_en || c.name)}</h4>
+          <h4 class="card-title">${escapeHtml(displayTitle)}</h4>
+          ${isSyntaxCard && c.image_url ? `<div style="font-size:11px; color:var(--text-muted); font-family:monospace; margin-bottom:4px; word-break:break-all;"><i class="fa-solid fa-file-image"></i> ${escapeHtml(c.image_url.split('/').pop().split('?')[0])}</div>` : ''}
           ${c.subcategory ? `<span class="card-subcategory-tag"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(c.subcategory)}</span>` : ''}
-          <p class="card-subtitles" style="margin-top:6px;">${escapeHtml(subnames || 'Multi-lingual ready')}</p>
+          <p class="card-subtitles" style="margin-top:6px;">${escapeHtml(subnames || (isSyntaxCard ? 'Single Image Story' : 'Multi-lingual ready'))}</p>
           ${isSemanticCard ? `
           <div class="concept-count-tag" style="margin-top:8px;">
             <i class="fa-solid fa-images"></i>
@@ -307,7 +317,7 @@ function filterCards() {
           <button class="btn-icon" title="${editBtnTitle}" onclick="openEditCardModal(${c.id})">
             <i class="fa-solid fa-pen-to-square"></i>
           </button>
-          <button class="btn-icon delete" title="Delete Flashcard" onclick="deleteCard(${c.id}, '${escapeHtml(c.title_en || c.name)}')">
+          <button class="btn-icon delete" title="Delete Flashcard" onclick="deleteCard(${c.id}, '${escapeHtml(displayTitle)}')">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -713,6 +723,21 @@ async function uploadImageFile(slot, file) {
 
     if (slot === 'main') {
       document.getElementById('cardFormImageUrl').value = data.image_url;
+      const fnBadge = document.getElementById('preview_filename_badge');
+      const fnTxt = document.getElementById('preview_filename_txt');
+      const originalFileName = file.name || (data.image_url.split('/').pop().split('?')[0]);
+      if (fnBadge && fnTxt) {
+        fnTxt.textContent = originalFileName;
+        fnBadge.style.display = 'inline-flex';
+      }
+
+      const domain = (document.getElementById('cardFormDomain')?.value || '').toLowerCase();
+      const titleInput = document.getElementById('cardFormTitleEn');
+      if (domain === 'syntax' || !titleInput.value.trim()) {
+        if (titleInput) {
+          titleInput.value = originalFileName;
+        }
+      }
       updateSlotPreview('main');
     } else {
       document.getElementById(`${slot}_image`).value = data.image_url;
@@ -733,15 +758,23 @@ function updateSlotPreview(slot) {
     const img = document.getElementById('preview_img_main');
     const txt = document.getElementById('preview_txt_main');
     const cropBtn = document.getElementById('btn_crop_main');
+    const fnBadge = document.getElementById('preview_filename_badge');
+    const fnTxt = document.getElementById('preview_filename_txt');
     if (url) {
       img.src = url;
       img.style.display = 'block';
       if (txt) txt.style.display = 'none';
       if (cropBtn) cropBtn.style.display = 'inline-flex';
+      if (fnBadge && fnTxt && (!fnTxt.textContent || fnTxt.textContent === 'file_name.png')) {
+        const parts = url.split('/');
+        fnTxt.textContent = parts[parts.length - 1].split('?')[0];
+        fnBadge.style.display = 'inline-flex';
+      }
     } else {
       img.style.display = 'none';
       if (txt) txt.style.display = 'block';
       if (cropBtn) cropBtn.style.display = 'none';
+      if (fnBadge) fnBadge.style.display = 'none';
     }
   } else {
     const url = (document.getElementById(`${slot}_image`).value || '').trim();
@@ -776,13 +809,18 @@ function onCardFormDomainChanged() {
 }
 
 function toggleCardAttributesVisibility(domain) {
-  const isSemantic = (domain || '').toLowerCase() === 'semantic';
+  const domLower = (domain || '').toLowerCase();
+  const isSemantic = domLower === 'semantic';
+  const isSyntax = domLower === 'syntax';
   const attrCol = document.getElementById('cardAttributesCol');
   const formGrid = document.getElementById('cardFormGrid');
   const modalContainer = document.querySelector('#cardModal .modal-container');
   const modalTitle = document.getElementById('cardModalTitle');
   const saveBtn = document.getElementById('saveCardBtn');
   const notice = document.getElementById('domainAttrNotice');
+  const noticeText = document.getElementById('domainAttrNoticeText');
+  const catGroup = document.getElementById('cardCategoryGroup');
+  const titleHint = document.getElementById('cardTitleHint');
   const isEdit = Boolean(document.getElementById('cardFormId')?.value);
 
   if (attrCol) {
@@ -804,18 +842,35 @@ function toggleCardAttributesVisibility(domain) {
       modalContainer.style.maxWidth = '680px';
     }
   }
+  if (catGroup) {
+    catGroup.style.display = isSyntax ? 'none' : 'block';
+  }
+  if (titleHint) {
+    titleHint.style.display = isSyntax ? 'block' : 'none';
+  }
   if (notice) {
-    notice.style.display = isSemantic ? 'none' : 'block';
+    if (isSemantic) {
+      notice.style.display = 'none';
+    } else {
+      notice.style.display = 'block';
+      if (noticeText) {
+        if (isSyntax) {
+          noticeText.textContent = 'Syntax Domain: Flashcards require no category deck. Simply upload your target image, and its file name will automatically be used in the UI.';
+        } else {
+          noticeText.textContent = 'Non-Semantic Domain: Flashcards in this domain only require the Target / Main Image. The 6 semantic attributes and their image slots are disabled.';
+        }
+      }
+    }
   }
   if (!isEdit && modalTitle) {
     const domainNames = {
       phonology: 'Phonology',
       morphology: 'Morphology',
-      syntax: 'Syntax',
+      syntax: 'Syntax (Stories)',
       semantic: 'Semantic',
       pragmatic: 'Pragmatic'
     };
-    const domLabel = domainNames[(domain || '').toLowerCase()] || domain || 'Target Domain';
+    const domLabel = domainNames[domLower] || domain || 'Target Domain';
     modalTitle.textContent = isSemantic 
       ? 'Create New Flashcard (7 Images)' 
       : `Create New Flashcard (${domLabel})`;
@@ -831,9 +886,16 @@ function populateCardCategorySelect(domain, selectedCatId = null) {
   const formSelect = document.getElementById('cardFormCategory');
   if (!formSelect) return;
 
+  const domLower = (domain || '').toLowerCase();
+  if (domLower === 'syntax') {
+    formSelect.innerHTML = '<option value="">(No Category - Direct Story Deck)</option>';
+    formSelect.value = '';
+    return;
+  }
+
   let cats = state.categories;
   if (domain) {
-    cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === domain.toLowerCase());
+    cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === domLower);
   }
 
   if (cats.length === 0) {
@@ -870,6 +932,9 @@ function openNewCardModal() {
   document.getElementById('cardFormImageUrl').value = '';
   document.getElementById('cardModalTitle').textContent = 'Create New Flashcard (7 Images)';
   document.getElementById('saveCardBtn').textContent = 'Create Flashcard';
+
+  const fnBadge = document.getElementById('preview_filename_badge');
+  if (fnBadge) fnBadge.style.display = 'none';
 
   // Domain & Category initialization
   let initialDomain = 'semantic';
@@ -922,13 +987,23 @@ function openEditCardModal(cardId) {
   populateCardCategorySelect(dom, card.category_id);
   toggleCardAttributesVisibility(dom);
 
-  document.getElementById('cardFormCategory').value = card.category_id;
+  document.getElementById('cardFormCategory').value = card.category_id || '';
   document.getElementById('cardFormSubcategory').value = card.subcategory || '';
   document.getElementById('cardFormTitleEn').value = card.title_en || card.name || '';
   document.getElementById('cardFormTitleTa').value = card.title_ta || '';
   document.getElementById('cardFormTitleHi').value = card.title_hi || '';
   document.getElementById('cardFormTitleMl').value = card.title_ml || '';
   document.getElementById('cardFormImageUrl').value = card.image_url || card.trigger_image || '';
+
+  const fnBadge = document.getElementById('preview_filename_badge');
+  const fnTxt = document.getElementById('preview_filename_txt');
+  const imgUrl = card.image_url || card.trigger_image || '';
+  if (imgUrl && fnBadge && fnTxt) {
+    fnTxt.textContent = imgUrl.split('/').pop().split('?')[0];
+    fnBadge.style.display = 'inline-flex';
+  } else if (fnBadge) {
+    fnBadge.style.display = 'none';
+  }
 
   updateSlotPreview('main');
 
@@ -992,6 +1067,7 @@ async function handleCardSubmit(e) {
 
   const domain = (document.getElementById('cardFormDomain')?.value || 'semantic').toLowerCase();
   const isSemantic = domain === 'semantic';
+  const isSyntax = domain === 'syntax';
 
   const attributesList = [];
   const attributesDict = {};
@@ -1029,22 +1105,40 @@ async function handleCardSubmit(e) {
     }
   }
 
-  const catVal = document.getElementById('cardFormCategory').value;
-  if (!catVal) {
-    showToast('Please select a valid category deck for the chosen domain', 'error');
-    return;
+  let categoryId = null;
+  if (!isSyntax) {
+    const catVal = document.getElementById('cardFormCategory').value;
+    if (!catVal) {
+      showToast('Please select a valid category deck for the chosen domain', 'error');
+      return;
+    }
+    categoryId = parseInt(catVal, 10);
+  } else {
+    const catVal = document.getElementById('cardFormCategory').value;
+    if (catVal) categoryId = parseInt(catVal, 10);
+  }
+
+  const imageUrl = document.getElementById('cardFormImageUrl').value.trim();
+  let titleEn = document.getElementById('cardFormTitleEn').value.trim();
+  if (isSyntax && !titleEn && imageUrl) {
+    const parts = imageUrl.split('/');
+    titleEn = parts[parts.length - 1].split('?')[0];
+  }
+  if (!titleEn) {
+    titleEn = 'Untitled Card';
   }
 
   const payload = {
-    category_id: parseInt(catVal, 10),
+    domain: domain,
+    category_id: categoryId,
     subcategory: document.getElementById('cardFormSubcategory').value.trim(),
-    name: document.getElementById('cardFormTitleEn').value.trim(),
-    title_en: document.getElementById('cardFormTitleEn').value.trim(),
+    name: titleEn,
+    title_en: titleEn,
     title_ta: document.getElementById('cardFormTitleTa').value.trim(),
     title_hi: document.getElementById('cardFormTitleHi').value.trim(),
     title_ml: document.getElementById('cardFormTitleMl').value.trim(),
-    image_url: document.getElementById('cardFormImageUrl').value.trim(),
-    trigger_image: document.getElementById('cardFormImageUrl').value.trim(),
+    image_url: imageUrl,
+    trigger_image: imageUrl,
     is_published: true,
     attributes: attributesDict,
     attributes_list: attributesList,

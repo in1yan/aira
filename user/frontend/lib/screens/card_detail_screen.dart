@@ -48,6 +48,15 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
     _mainImageUrl = widget.imageUrl;
     _domain = (widget.domain ?? widget.cardData?['domain'] ?? 'semantic').toString().toLowerCase();
 
+    if (_domain == 'syntax') {
+      final fileNameFromUrl = _mainImageUrl.split('/').last.split('?').first;
+      if (_cardTitle.isEmpty || _cardTitle == 'Card' || _cardTitle == 'Untitled Card') {
+        if (fileNameFromUrl.isNotEmpty && fileNameFromUrl != 'image') {
+          _cardTitle = fileNameFromUrl;
+        }
+      }
+    }
+
     if (_cardData != null) {
       _parseCardData(_cardData!);
     } else if (widget.attributes.isNotEmpty) {
@@ -66,6 +75,15 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
       _domain = data['domain'].toString().toLowerCase();
     }
     _mainImageUrl = apiClient.imageUrl((data['image_url'] ?? data['trigger_image'] ?? data['card_image'] ?? widget.imageUrl) as String?);
+
+    if (_domain == 'syntax') {
+      final fileNameFromUrl = _mainImageUrl.split('/').last.split('?').first;
+      if (_cardTitle.isEmpty || _cardTitle == 'Card' || _cardTitle == 'Untitled Card') {
+        if (fileNameFromUrl.isNotEmpty && fileNameFromUrl != 'image') {
+          _cardTitle = fileNameFromUrl;
+        }
+      }
+    }
 
     if (data['attributes_list'] is List && (data['attributes_list'] as List).isNotEmpty) {
       _attributesList = (data['attributes_list'] as List).whereType<Map<String, dynamic>>().toList();
@@ -131,6 +149,9 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
   }
 
   String _getLocalizedTitle() {
+    if (_domain == 'syntax') {
+      return _cardTitle;
+    }
     if (_cardData == null) return _cardTitle;
     switch (_selectedLanguage) {
       case 'Tamil':
@@ -245,7 +266,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withOpacity(0.15),
+                          color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -296,7 +317,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                   border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -443,6 +464,372 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
 
 
 
+  void _showCardImageModal() {
+    final title = _getLocalizedTitle();
+    final subtitle = _subcategory.isNotEmpty ? _subcategory : _cardTitle;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Title, Subtitle, and Audio/Close buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () async {
+                          final langCode = _selectedLanguage == 'Tamil'
+                              ? 'ta'
+                              : _selectedLanguage == 'Hindi'
+                                  ? 'hi'
+                                  : _selectedLanguage == 'Malayalam'
+                                      ? 'ml'
+                                      : 'en';
+                          await apiClient.fetchTTS(title, langCode);
+                        },
+                        icon: const Icon(Icons.volume_up_rounded, color: Color(0xFF4CAF50), size: 24),
+                        tooltip: 'Play Audio',
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: const Icon(Icons.close_rounded, size: 24, color: Color(0xFF64748B)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Interactive Image Display
+              Container(
+                width: double.infinity,
+                height: 350,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(19),
+                  child: _mainImageUrl.isNotEmpty
+                      ? InteractiveViewer(
+                          minScale: 0.8,
+                          maxScale: 4.0,
+                          child: Image.network(
+                            _mainImageUrl,
+                            width: double.infinity,
+                            height: double.infinity,
+                            fit: BoxFit.contain,
+                            loadingBuilder: (_, child, progress) {
+                              if (progress == null) return child;
+                              return const Center(
+                                child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => _buildFallbackCardImage(),
+                          ),
+                        )
+                      : _buildFallbackCardImage(),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Zoom hint
+              const Center(
+                child: Text(
+                  'Pinch or drag to zoom and inspect image',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Close Viewer Button
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF1F5F9),
+                    foregroundColor: const Color(0xFF0F172A),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Close Viewer',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFlashcardFrame({double height = 260}) {
+    return GestureDetector(
+      onTap: _showCardImageModal,
+      child: Container(
+        width: double.infinity,
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDDC01), // Bright yellow border
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF1E293B), width: 3),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(11),
+            child: Stack(
+              children: [
+                Center(
+                  child: _mainImageUrl.isNotEmpty
+                      ? Image.network(
+                          _mainImageUrl,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (_, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => _buildFallbackCardImage(),
+                        )
+                      : _buildFallbackCardImage(),
+                ),
+                Positioned(
+                  top: 6,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Text(
+                      _subcategory.isNotEmpty ? _subcategory : 'Smart Flash Card',
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 6,
+                  left: 8,
+                  child: Text(
+                    '$_cardTitle | ${_getLocalizedTitle()}',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 6,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B).withValues(alpha: 0.75),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.zoom_in_rounded, size: 12, color: Colors.white),
+                        SizedBox(width: 3),
+                        Text(
+                          'View',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCardTitle() {
+    return Text(
+      _getLocalizedTitle(),
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
+        color: Color(0xFF0F172A),
+        letterSpacing: -0.5,
+      ),
+    );
+  }
+
+  Widget _buildLanguagePills() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: _languages.map((lang) {
+          final isSelected = lang == _selectedLanguage;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedLanguage = lang),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white : Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        )
+                      ]
+                    : [],
+              ),
+              child: Text(
+                lang,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildBackToCategoriesButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const CategoriesScreen()),
+            (route) => route.isFirst,
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF1F5F9),
+          foregroundColor: const Color(0xFF0F172A),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.grid_view_rounded, size: 22, color: Color(0xFF0F172A)),
+            SizedBox(width: 10),
+            Text(
+              'Back to Categories',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final attributes = _isSemantic ? _get6Attributes() : <Map<String, dynamic>>[];
@@ -542,148 +929,21 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                     ),
                   ),
 
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 8),
-
-                          // ---- Flashcard Frame Container (Center Main Trigger Image) ----
-                          Container(
-                            width: double.infinity,
-                            height: 260,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFDDC01), // Bright yellow border
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            padding: const EdgeInsets.all(10),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFF1E293B), width: 3),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(11),
-                                child: Stack(
-                                  children: [
-                                    Center(
-                                      child: _mainImageUrl.isNotEmpty
-                                          ? Image.network(
-                                              _mainImageUrl,
-                                              fit: BoxFit.contain,
-                                              loadingBuilder: (_, child, progress) {
-                                                if (progress == null) return child;
-                                                return const Center(
-                                                  child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
-                                                );
-                                              },
-                                              errorBuilder: (_, __, ___) => _buildFallbackCardImage(),
-                                            )
-                                          : _buildFallbackCardImage(),
-                                    ),
-                                    Positioned(
-                                      top: 6,
-                                      left: 8,
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        child: Text(
-                                          _subcategory.isNotEmpty ? _subcategory : 'Smart Flash Card',
-                                          style: const TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w700,
-                                            color: Color(0xFF1E293B),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      bottom: 6,
-                                      left: 8,
-                                      child: Text(
-                                        '$_cardTitle | ${_getLocalizedTitle()}',
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF475569),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // ---- Card Title ----
-                          Text(
-                            _getLocalizedTitle(),
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0F172A),
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-
-                          const SizedBox(height: 14),
-
-                          // ---- Language Selector Pills ----
-                          Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: _languages.map((lang) {
-                                final isSelected = lang == _selectedLanguage;
-                                return GestureDetector(
-                                  onTap: () => setState(() => _selectedLanguage = lang),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? Colors.white : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(0.06),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              )
-                                            ]
-                                          : [],
-                                    ),
-                                    child: Text(
-                                      lang,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                        color: isSelected ? const Color(0xFF0F172A) : const Color(0xFF64748B),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ),
-
-                          if (_isSemantic) ...[
+                  // ---- Main Body ----
+                  if (_isSemantic)
+                    // Semantic cards: scrollable with the 6 attribute dimensions
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 8),
+                            _buildFlashcardFrame(height: 260),
+                            const SizedBox(height: 16),
+                            _buildCardTitle(),
+                            const SizedBox(height: 14),
+                            _buildLanguagePills(),
                             const SizedBox(height: 20),
-                            // ---- 6 Concept / Attribute Buttons Grid (Semantic Domain Only) ----
                             GridView.count(
                               crossAxisCount: 3,
                               shrinkWrap: true,
@@ -701,53 +961,44 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
                                 );
                               }).toList(),
                             ),
+                            const SizedBox(height: 24),
+                            _buildBackToCategoriesButton(),
+                            const SizedBox(height: 24),
                           ],
-
-                          const SizedBox(height: 24),
-
-                          // ---- Bottom Button: Back to Categories ----
-                          SizedBox(
-                            width: double.infinity,
-                            height: 54,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const CategoriesScreen()),
-                                  (route) => route.isFirst,
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF1F5F9),
-                                foregroundColor: const Color(0xFF0F172A),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(28),
+                        ),
+                      ),
+                    )
+                  else
+                    // Non-semantic cards: card is centered vertically in available space
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Center(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    _buildFlashcardFrame(height: 290),
+                                    const SizedBox(height: 20),
+                                    _buildCardTitle(),
+                                    const SizedBox(height: 16),
+                                    _buildLanguagePills(),
+                                  ],
                                 ),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.grid_view_rounded, size: 22, color: Color(0xFF0F172A)),
-                                  SizedBox(width: 10),
-                                  Text(
-                                    'Back to Categories',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                ],
                               ),
                             ),
                           ),
-
-                          const SizedBox(height: 24),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+                            child: _buildBackToCategoriesButton(),
+                          ),
                         ],
                       ),
                     ),
-                  ),
                 ],
               ),
       ),
@@ -796,7 +1047,7 @@ class _CardDetailScreenState extends State<CardDetailScreen> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: hasImage ? const Color(0xFF4CAF50).withOpacity(0.5) : const Color(0xFFE2E8F0),
+              color: hasImage ? const Color(0xFF4CAF50).withValues(alpha: 0.5) : const Color(0xFFE2E8F0),
               width: hasImage ? 1.5 : 1,
             ),
           ),

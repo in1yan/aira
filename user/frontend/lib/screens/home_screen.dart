@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../services/api_client.dart';
+import 'card_list_screen.dart';
 import 'categories_screen.dart';
 import 'login_screen.dart';
 
@@ -788,8 +789,8 @@ class _HomeScreenState extends State<HomeScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         _buildActionOptionCard(
-          title: 'Phonology :',
-          subtitle: 'Smart Photo Articulation',
+          title: 'Phonology',
+          subtitle: 'Smart Photo Articulation Training (SPAT)',
           color: const Color(0xFF0288D1),
           borderColor: const Color(0xFF81D4FA),
           bgColor: const Color(0xFFF0F9FF),
@@ -810,8 +811,8 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 8),
         _buildActionOptionCard(
-          title: 'Morphology :',
-          subtitle: 'Smart Flash Cards',
+          title: 'Morphology',
+          subtitle: 'Flash Cards',
           color: const Color(0xFF2E7D32),
           borderColor: const Color(0xFFA5D6A7),
           bgColor: const Color(0xFFF1F8E9),
@@ -832,8 +833,8 @@ class _HomeScreenState extends State<HomeScreen>
         ),
         const SizedBox(height: 8),
         _buildActionOptionCard(
-          title: 'Syntax :',
-          subtitle: 'Syntax Stimulation Stories',
+          title: 'Syntax',
+          subtitle: 'Syntax Stimulation Stories(SSS)',
           color: const Color(0xFF7B1FA2),
           borderColor: const Color(0xFFCE93D8),
           bgColor: const Color(0xFFF3E5F5),
@@ -843,10 +844,9 @@ class _HomeScreenState extends State<HomeScreen>
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const CategoriesScreen(
+                builder: (_) => const CardListScreen(
                   domain: 'syntax',
-                  title: 'Syntax Categories',
-                  themeColor: Color(0xFF7B1FA2),
+                  customTitle: 'Syntax Stimulation Stories',
                 ),
               ),
             );
@@ -859,8 +859,8 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Use Option (Pragmatic Power Play) ──
   Widget _buildUseOptions() {
     return _buildActionOptionCard(
-      title: 'Pragmatic :',
-      subtitle: 'Pragmatic Power Play',
+      title: 'Pragmatic',
+      subtitle: 'Pragmatic Power Phrases',
       color: const Color(0xFFE65100),
       borderColor: const Color(0xFFFFCC80),
       bgColor: const Color(0xFFFFF3E0),

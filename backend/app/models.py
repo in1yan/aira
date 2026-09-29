@@ -32,7 +32,8 @@ class Card(Base):
     __tablename__ = "cards"
 
     id = Column(Integer, primary_key=True, index=True)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    domain = Column(String, default="semantic", index=True, nullable=True)
     subcategory = Column(String, nullable=True, index=True)
     title_en = Column(String, index=True, nullable=False)
     title_ta = Column(String, nullable=True)

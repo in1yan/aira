@@ -4,8 +4,17 @@ import '../services/api_client.dart';
 import 'card_detail_screen.dart';
 
 class CardListScreen extends StatefulWidget {
-  final CategoryData category;
-  const CardListScreen({super.key, required this.category});
+  final CategoryData? category;
+  final String? domain;
+  final String? customTitle;
+
+  const CardListScreen({
+    super.key,
+    this.category,
+    this.domain,
+    this.customTitle,
+  });
+
   @override
   State<CardListScreen> createState() => _CardListScreenState();
 }
@@ -20,20 +29,26 @@ class _CardListScreenState extends State<CardListScreen> {
     'pragmatic': 'Use • Pragmatic Power Play',
   };
 
+  String get _effectiveDomain =>
+      widget.domain ?? widget.category?.domain ?? 'semantic';
+
+  String get _effectiveTitle =>
+      widget.customTitle ?? widget.category?.name ?? 'Flash Cards';
+
   @override
   void initState() {
     super.initState();
     _cards = apiClient.cards(
-      categoryId: widget.category.id,
-      domain: widget.category.domain,
+      categoryId: widget.category?.id,
+      domain: _effectiveDomain,
     );
   }
 
   Future<void> _refreshCards() async {
     setState(() {
       _cards = apiClient.cards(
-        categoryId: widget.category.id,
-        domain: widget.category.domain,
+        categoryId: widget.category?.id,
+        domain: _effectiveDomain,
       );
     });
   }
@@ -48,12 +63,12 @@ class _CardListScreenState extends State<CardListScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.category.name,
+                _effectiveTitle,
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
               ),
-              if (_domainLabels.containsKey(widget.category.domain.toLowerCase()))
+              if (_domainLabels.containsKey(_effectiveDomain.toLowerCase()))
                 Text(
-                  _domainLabels[widget.category.domain.toLowerCase()]!,
+                  _domainLabels[_effectiveDomain.toLowerCase()]!,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -91,11 +106,13 @@ class _CardListScreenState extends State<CardListScreen> {
                 return Center(
                   child: ListView(
                     shrinkWrap: true,
-                    children: const [
+                    children: [
                       Center(
                         child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text('No published cards in this category yet.'),
+                          padding: const EdgeInsets.all(24),
+                          child: Text(_effectiveDomain.toLowerCase() == 'syntax'
+                              ? 'No published syntax cards yet.'
+                              : 'No published cards in this category yet.'),
                         ),
                       ),
                     ],
@@ -113,8 +130,20 @@ class _CardListScreenState extends State<CardListScreen> {
               itemBuilder: (context, index) {
                 final card = cards[index];
                 final cardId = card['id'] as int? ?? 1;
-                final name = (card['name'] ?? card['title_en'] ?? 'Card').toString();
-                final imageUrl = apiClient.imageUrl((card['image_url'] ?? card['trigger_image'] ?? card['card_image']) as String?);
+                final rawImageUrl = (card['image_url'] ?? card['trigger_image'] ?? card['card_image']) as String? ?? '';
+                final imageUrl = apiClient.imageUrl(rawImageUrl);
+
+                String name = (card['name'] ?? card['title_en'] ?? '').toString().trim();
+                if (_effectiveDomain.toLowerCase() == 'syntax') {
+                  if (name.isEmpty || name == 'Card' || name == 'Untitled Card') {
+                    final fileName = rawImageUrl.split('/').last.split('?').first;
+                    if (fileName.isNotEmpty && fileName != 'image') {
+                      name = fileName;
+                    }
+                  }
+                }
+                if (name.isEmpty) name = 'Card';
+
                 final attributes = (card['attributes_list'] as List<dynamic>?)?.whereType<Map<String, dynamic>>().toList() ?? const [];
 
                 return _CardTile(
@@ -127,7 +156,7 @@ class _CardListScreenState extends State<CardListScreen> {
                                 cardId: cardId,
                                 cardName: name,
                                 imageUrl: imageUrl,
-                                domain: widget.category.domain,
+                                domain: _effectiveDomain,
                                 cardData: card,
                                 attributes: attributes))));
               },

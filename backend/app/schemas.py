@@ -97,7 +97,8 @@ class CategoryResponse(BaseModel):
 
 # Card schemas
 class CardCreate(BaseModel):
-    category_id: int
+    category_id: Optional[int] = None
+    domain: Optional[str] = "semantic"
     subcategory: Optional[str] = ""
     name: Optional[str] = None
     title_en: Optional[str] = None
@@ -112,6 +113,7 @@ class CardCreate(BaseModel):
 
 class CardUpdate(BaseModel):
     category_id: Optional[int] = None
+    domain: Optional[str] = None
     subcategory: Optional[str] = None
     name: Optional[str] = None
     title_en: Optional[str] = None
@@ -127,7 +129,7 @@ class CardUpdate(BaseModel):
 # Card detail response
 class CardResponse(BaseModel):
     id: int
-    category_id: int
+    category_id: Optional[int] = None
     category_name: Optional[str] = ""
     domain: Optional[str] = "semantic"
     subcategory: Optional[str] = ""

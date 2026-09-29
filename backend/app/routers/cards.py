@@ -46,13 +46,20 @@ def format_card_response(card: Card, db: Session) -> dict:
         attr_list.append(attr_data)
     
     category_name = ""
-    domain = "semantic"
+    domain = getattr(card, 'domain', None) or "semantic"
     if card.category:
         category_name = card.category.name_en
-        domain = card.category.domain or "semantic"
+        domain = card.category.domain or domain or "semantic"
 
-    title = card.title_en or ""
     image = card.image_url or ""
+    title = card.title_en or ""
+    if domain.lower() == "syntax" and image:
+        import os
+        if not title or title.lower() in ("syntax story", "untitled card"):
+            title = os.path.basename(image)
+    elif not title and image:
+        import os
+        title = os.path.basename(image)
 
     return {
         "id": card.id,
@@ -75,11 +82,18 @@ def format_card_response(card: Card, db: Session) -> dict:
 
 @router.get("", response_model=List[CardResponse])
 def get_cards(category_id: Optional[int] = None, domain: Optional[str] = None, db: Session = Depends(get_db)):
+    from sqlalchemy import or_
     query = db.query(Card)
     if category_id is not None:
         query = query.filter(Card.category_id == category_id)
     if domain is not None and domain.strip():
-        query = query.join(Category).filter(Category.domain == domain.strip().lower())
+        dom_clean = domain.strip().lower()
+        query = query.outerjoin(Category).filter(
+            or_(
+                Card.domain == dom_clean,
+                Category.domain == dom_clean
+            )
+        )
     cards = query.all()
     return [format_card_response(c, db) for c in cards]
 
@@ -92,15 +106,33 @@ def get_card(card_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=CardResponse, status_code=status.HTTP_201_CREATED)
 def create_card(payload: CardCreate, db: Session = Depends(get_db)):
-    cat = db.query(Category).filter(Category.id == payload.category_id).first()
-    if not cat:
-        raise HTTPException(status_code=400, detail=f"Category {payload.category_id} not found")
+    import os
+    domain_clean = (payload.domain or "semantic").strip().lower()
+    cat = None
+    if payload.category_id:
+        cat = db.query(Category).filter(Category.id == payload.category_id).first()
+        if not cat and domain_clean != "syntax":
+            raise HTTPException(status_code=400, detail=f"Category {payload.category_id} not found")
+        if cat:
+            domain_clean = (cat.domain or domain_clean).strip().lower()
+    elif domain_clean != "syntax":
+        raise HTTPException(status_code=400, detail="Category ID is required for non-syntax cards")
 
-    title = payload.name or payload.title_en or ""
     image = payload.trigger_image or payload.image_url or ""
+    title = payload.name or payload.title_en or ""
+
+    # In syntax domain, show the file name of the uploaded target image in UI
+    if domain_clean == "syntax":
+        if image and (not title or title.lower() in ("syntax story", "untitled card")):
+            title = os.path.basename(image)
+        elif not title:
+            title = "syntax_card.jpg"
+    elif not title and image:
+        title = os.path.basename(image)
 
     new_card = Card(
-        category_id=payload.category_id,
+        category_id=cat.id if cat else None,
+        domain=domain_clean,
         subcategory=payload.subcategory or "",
         title_en=title,
         title_ta=payload.title_ta or "",
@@ -154,11 +186,20 @@ def update_card(card_id: int, payload: CardUpdate, db: Session = Depends(get_db)
     if not card:
         raise HTTPException(status_code=404, detail="Card not found")
 
+    domain_clean = (payload.domain or getattr(card, 'domain', None) or "semantic").strip().lower()
+    if payload.domain is not None:
+        card.domain = payload.domain
+
     if payload.category_id is not None:
-        cat = db.query(Category).filter(Category.id == payload.category_id).first()
-        if not cat:
-            raise HTTPException(status_code=400, detail=f"Category {payload.category_id} not found")
-        card.category_id = payload.category_id
+        if payload.category_id <= 0:
+            card.category_id = None
+        else:
+            cat = db.query(Category).filter(Category.id == payload.category_id).first()
+            if not cat and domain_clean != "syntax":
+                raise HTTPException(status_code=400, detail=f"Category {payload.category_id} not found")
+            card.category_id = cat.id if cat else None
+            if cat:
+                card.domain = cat.domain or card.domain
 
     if payload.subcategory is not None:
         card.subcategory = payload.subcategory

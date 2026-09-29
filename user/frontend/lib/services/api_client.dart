@@ -595,6 +595,26 @@ class ApiClient {
       return list;
     } catch (e) {
       debugPrint('[ApiClient] Cards API error (cat: $categoryId, domain: $domain): $e, using mock fallback');
+      if (domain?.toLowerCase() == 'syntax') {
+        return [
+          {
+            'id': 301,
+            'name': 'boy_eating_apple.png',
+            'title_en': 'boy_eating_apple.png',
+            'domain': 'syntax',
+            'image_url':
+                'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80',
+          },
+          {
+            'id': 302,
+            'name': 'girl_reading_book.png',
+            'title_en': 'girl_reading_book.png',
+            'domain': 'syntax',
+            'image_url':
+                'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
+          },
+        ];
+      }
       return [
         {
           'id': 1,
