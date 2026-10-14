@@ -7,26 +7,42 @@ import 'package:flutter/material.dart';
 // ---------------------------------------------------------------------------
 class CategoryData {
   final int? id;
+  final int? parentId;
   final String name;
+  final String? nameTa;
+  final String? nameHi;
+  final String? nameMl;
   final IconData icon;
   final Color color;
   final bool available;
   final List<String> subcategories;
   final String domain;
   final int cardCount;
+  final int subcategoriesCount;
+  final int totalCardCount;
+  final List<Map<String, dynamic>> breadcrumbs;
   final String description;
 
   const CategoryData({
     this.id,
+    this.parentId,
     required this.name,
+    this.nameTa,
+    this.nameHi,
+    this.nameMl,
     required this.icon,
     required this.color,
     this.available = true,
     this.subcategories = const [],
     this.domain = 'semantic',
     this.cardCount = 0,
+    this.subcategoriesCount = 0,
+    this.totalCardCount = 0,
+    this.breadcrumbs = const [],
     this.description = '',
   });
+
+  bool get isFolder => subcategoriesCount > 0;
 }
 
 const List<CategoryData> mockCategories = [

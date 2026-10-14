@@ -189,17 +189,26 @@ class ApiClient {
     }
   }
 
-  Future<List<Map<String, dynamic>>> categories({String? domain}) async {
+  Future<List<Map<String, dynamic>>> categories({
+    String? domain,
+    dynamic parentId = 'root',
+  }) async {
     try {
-      final endpoint = domain != null && domain.isNotEmpty
-          ? '/categories?domain=${Uri.encodeComponent(domain)}'
-          : '/categories';
+      final queryParams = <String>[];
+      if (domain != null && domain.isNotEmpty) {
+        queryParams.add('domain=${Uri.encodeComponent(domain)}');
+      }
+      if (parentId != null && parentId != 'all') {
+        queryParams.add('parent_id=${Uri.encodeComponent(parentId.toString())}');
+      }
+      final queryStr = queryParams.isNotEmpty ? '?${queryParams.join('&')}' : '';
+      final endpoint = '/categories$queryStr';
       final result = await _send('GET', endpoint);
       final list = (result as List).cast<Map<String, dynamic>>();
-      debugPrint('[ApiClient] Successfully loaded ${list.length} categories from API (domain: $domain)');
+      debugPrint('[ApiClient] Successfully loaded ${list.length} categories from API (domain: $domain, parentId: $parentId)');
       return list;
     } catch (e) {
-      debugPrint('[ApiClient] Categories API error ($domain): $e, using mock fallback');
+      debugPrint('[ApiClient] Categories API error ($domain, parentId: $parentId): $e, using mock fallback');
       final allMock = [
         {
           'id': 1,
@@ -528,6 +537,16 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> categoryContents(int categoryId) async {
+    try {
+      final res = await _send('GET', '/categories/$categoryId/contents');
+      return res as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('[ApiClient] Category contents API error ($categoryId): $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> card(int cardId) async {
     try {
       final res = (await _send('GET', '/cards/$cardId')) as Map<String, dynamic>;
@@ -580,12 +599,15 @@ class ApiClient {
   }
 
   Future<List<Map<String, dynamic>>> cards(
-      {int? categoryId, String? domain}) async {
+      {int? categoryId, String? domain, bool includeSubcategories = false}) async {
     try {
       final queryParams = <String>[];
       if (categoryId != null) queryParams.add('category_id=$categoryId');
       if (domain != null && domain.isNotEmpty) {
         queryParams.add('domain=${Uri.encodeComponent(domain)}');
+      }
+      if (includeSubcategories) {
+        queryParams.add('include_subcategories=true');
       }
       final path =
           queryParams.isEmpty ? '/cards' : '/cards?${queryParams.join('&')}';

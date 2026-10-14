@@ -239,70 +239,53 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         const SizedBox(width: 12),
-
-        // Organization Titles
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'राष्ट्रीय बहुदिव्यांगता जन सशक्तिकरण संस्थान',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF8B1538),
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 1),
-              const Text(
-                'National Institute for Empowerment of Persons with Multiple Disabilities',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF8B1538),
-                  height: 1.2,
-                ),
-              ),
               const SizedBox(height: 1),
               Row(
                 children: [
                   const Text(
                     'NIEPMD',
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF8B1538),
                       letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // App Badge 'Aira'
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF8B1538).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: const Color(0xFF8B1538).withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: const Text(
-                      'Aira',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF8B1538),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ],
           ),
         ),
+        // REC logo 
+        Image.asset(
+          'assets/rec-logo-small-nobg.png',
+          width: 94,
+          height: 94,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF8B1538).withValues(alpha: 0.1),
+              border: Border.all(color: const Color(0xFF8B1538), width: 1.5),
+            ),
+            child: const Icon(
+              Icons.school_rounded,
+              color: Color(0xFF8B1538),
+              size: 28,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+
+
 
         // Quick logout / profile action
         IconButton(
