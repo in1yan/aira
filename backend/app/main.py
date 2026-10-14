@@ -83,3 +83,6 @@ def serve_admin():
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "aira-unified-backend"}
+@app.head("/health")
+def health_check():
+    return
