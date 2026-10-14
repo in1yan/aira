@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
-import 'video_intro_screen.dart';
+import 'home_screen.dart';
 
 class DemoPersona {
   final String name;
@@ -160,20 +160,11 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  // ── Video assets to play after login ──
-  // Add your MP4 filenames here (order matters).
-  static const _introVideos = [
-    'assets/videos/intro1.mp4',
-    'assets/videos/intro2.mp4',
-    // Add more clips as needed:
-    // 'assets/videos/intro3.mp4',
-  ];
-
   void _navigateToHome() {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => const VideoIntroScreen(videoAssets: _introVideos),
+        builder: (_) => const HomeScreen(),
       ),
     );
   }

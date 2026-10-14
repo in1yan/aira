@@ -71,7 +71,7 @@ class ApiClient {
   // ADB reverse tcp:8000 tcp:8000 routes physical device traffic directly to 127.0.0.1:8000
   static const baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8000/api',
+    defaultValue: 'https://aira-dev.onrender.com/api',
   );
 
   /// Generous request timeout (30s) to allow for network latency and remote DB queries

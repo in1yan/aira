@@ -28,6 +28,27 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isPlayingWelcome = false;
   String? _selectedConcept; // null initially (only triad menu shown)
 
+  static const String _introVideo = 'assets/videos/intro.mp4';
+  static const String _contentVideo = 'assets/videos/content.mp4';
+  static const String _useVideo = 'assets/videos/use.mp4';
+  static const String _formVideo = 'assets/videos/form.mp4';
+
+  int _videoRequestId = 0;
+  String? _currentVideoAsset;
+
+  String _videoAssetForConcept(String? concept) {
+    switch (concept) {
+      case 'content':
+        return _contentVideo;
+      case 'form':
+        return _formVideo;
+      case 'use':
+        return _useVideo;
+      default:
+        return _introVideo;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,27 +67,48 @@ class _HomeScreenState extends State<HomeScreen>
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
 
-    _initVideo();
+    _loadVideo(_introVideo);
   }
 
-  Future<void> _initVideo() async {
+  Future<void> _loadVideo(String asset) async {
+    if (_currentVideoAsset == asset) return;
+    _currentVideoAsset = asset;
+    final requestId = ++_videoRequestId;
+
+    final old = _videoController;
+    if (old != null) {
+      old.removeListener(_videoListener);
+      _videoController = null;
+    }
+    if (mounted) {
+      setState(() {
+        _isVideoInitialized = false;
+        _isPlayingWelcome = false;
+      });
+    }
+    await old?.dispose();
+
     try {
-      final controller =
-          VideoPlayerController.asset('assets/videos/intro2.mp4');
-      _videoController = controller;
+      final controller = VideoPlayerController.asset(asset);
       await controller.initialize();
+      if (!mounted || requestId != _videoRequestId) {
+        await controller.dispose();
+        return;
+      }
       controller.setLooping(false);
       controller.setVolume(1.0);
       controller.addListener(_videoListener);
-      if (mounted) {
-        setState(() {
-          _isVideoInitialized = true;
-          _isPlayingWelcome = true;
-        });
-        controller.play();
-      }
+      setState(() {
+        _videoController = controller;
+        _isVideoInitialized = true;
+        _isPlayingWelcome = true;
+      });
+      controller.play();
     } catch (e) {
       debugPrint('HomeScreen video player init error: $e');
+      if (mounted && requestId == _videoRequestId) {
+        setState(() => _isVideoInitialized = false);
+      }
     }
   }
 
@@ -436,6 +478,45 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildSpeechBubbleCard() {
+    String heading;
+    String welcomeLine;
+    String titleLine;
+    String description;
+
+    switch (_selectedConcept) {
+      case 'content':
+        heading = 'Content 📚';
+        welcomeLine = 'Content —\n';
+        titleLine = 'Meaning & Concepts.';
+        description =
+            'Content is the meaning we express through words and ideas. Explore Semantic Stimulation Cards to build vocabulary and understanding.';
+        break;
+      case 'form':
+        heading = 'Form 🧩';
+        welcomeLine = 'Form —\n';
+        titleLine = 'Sounds & Structure.';
+        description =
+            'Form is how words are built and arranged. Explore Phonology, Morphology and Syntax activities to strengthen language structure.';
+        break;
+      case 'use':
+        heading = 'Use 💬';
+        welcomeLine = 'Use —\n';
+        titleLine = 'Social Language.';
+        description =
+            'Use is language in social context. Explore Pragmatic Power Phrases to practise everyday communication and interaction.';
+        break;
+      default:
+        heading = 'Namaskar 🙏';
+        welcomeLine = 'Welcome to\n';
+        titleLine = 'Language Acquisition Device.';
+        description =
+            'I will guide you through the application and help you understand how to use the language acquisition device.';
+    }
+
+    final playLabel = _selectedConcept == null
+        ? (_isPlayingWelcome ? 'Pause Welcome' : 'Play Welcome')
+        : (_isPlayingWelcome ? 'Pause' : 'Play');
+
     return CustomPaint(
       painter: SpeechBubblePainter(
         borderColor: const Color(0xFF8B1538),
@@ -461,10 +542,10 @@ class _HomeScreenState extends State<HomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // "Namaskar 🙏"
-                const Text(
-                  'Namaskar 🙏',
-                  style: TextStyle(
+                // Heading (changes with the selected option)
+                Text(
+                  heading,
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: Color(0xFF8B1538),
@@ -472,13 +553,13 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 2),
 
-                // "Welcome to Language Acquisition Device."
+                // Title line (changes with the selected option)
                 RichText(
-                  text: const TextSpan(
+                  text: TextSpan(
                     children: [
                       TextSpan(
-                        text: 'Welcome to\n',
-                        style: TextStyle(
+                        text: welcomeLine,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF0D47A1),
@@ -486,8 +567,8 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ),
                       TextSpan(
-                        text: 'Language Acquisition Device.',
-                        style: TextStyle(
+                        text: titleLine,
+                        style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
                           color: Color(0xFF8B1538),
@@ -499,10 +580,10 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 4),
 
-                // Description
-                const Text(
-                  'I will guide you through the application and help you understand how to use the language acquisition device.',
-                  style: TextStyle(
+                // Description (changes with the selected option)
+                Text(
+                  description,
+                  style: const TextStyle(
                     fontSize: 10.5,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF0288D1),
@@ -540,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          _isPlayingWelcome ? 'Pause Welcome' : 'Play Welcome',
+                          playLabel,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -1024,11 +1105,11 @@ class _HomeScreenState extends State<HomeScreen>
                         icon: _buildContentIcon(isLarge: isStandalone),
                         label: 'Content',
                         onTap: () {
-                          _pauseVideoIfPlaying();
-                          setState(() {
-                            _selectedConcept =
-                                (_selectedConcept == 'content') ? null : 'content';
-                          });
+                          final next = (_selectedConcept == 'content')
+                              ? null
+                              : 'content';
+                          setState(() => _selectedConcept = next);
+                          _loadVideo(_videoAssetForConcept(next));
                         },
                       ),
                     ],
@@ -1073,11 +1154,10 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         label: 'Form',
                         onTap: () {
-                          _pauseVideoIfPlaying();
-                          setState(() {
-                            _selectedConcept =
-                                (_selectedConcept == 'form') ? null : 'form';
-                          });
+                          final next =
+                              (_selectedConcept == 'form') ? null : 'form';
+                          setState(() => _selectedConcept = next);
+                          _loadVideo(_videoAssetForConcept(next));
                         },
                       ),
                     ],
@@ -1128,11 +1208,10 @@ class _HomeScreenState extends State<HomeScreen>
                         icon: _buildUseTapIcon(isLarge: isStandalone),
                         label: 'Use',
                         onTap: () {
-                          _pauseVideoIfPlaying();
-                          setState(() {
-                            _selectedConcept =
-                                (_selectedConcept == 'use') ? null : 'use';
-                          });
+                          final next =
+                              (_selectedConcept == 'use') ? null : 'use';
+                          setState(() => _selectedConcept = next);
+                          _loadVideo(_videoAssetForConcept(next));
                         },
                       ),
                     ],
