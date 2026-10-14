@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from .database import Base
 
 class User(Base):
@@ -18,6 +18,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     domain = Column(String, default="semantic", index=True, nullable=False)
+    parent_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=True, index=True)
     name_en = Column(String, index=True, nullable=False)
     name_ta = Column(String, nullable=True)
     name_hi = Column(String, nullable=True)
@@ -25,6 +26,14 @@ class Category(Base):
     description = Column(Text, nullable=True)
     icon_name = Column(String, default="pets")
     color_hex = Column(String, default="#E8F5E9")
+
+    # Self-referential hierarchy for folder-style management
+    subcategories = relationship(
+        "Category",
+        backref=backref("parent", remote_side=[id]),
+        cascade="all, delete-orphan",
+        single_parent=True
+    )
 
     cards = relationship("Card", back_populates="category", cascade="all, delete-orphan")
 

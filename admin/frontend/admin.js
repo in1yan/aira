@@ -54,19 +54,37 @@ let state = {
   stats: {},
   categories: [],
   cards: [],
+  semanticCards: null,
   users: [],
   activeTab: 'overview',
   activeMatrixLang: 'en',
   activeModalLang: 'en',
   selectedCategoryDomain: 'all',
   selectedCardDomain: '',
+  currentFolderId: null,
+  categoryViewMode: 'explorer',
+  cardPage: 1,
+  cardPageSize: 24,
+  loadedTabs: {
+    overview: false,
+    cards: false,
+    categories: false,
+    concepts: false,
+    users: false,
+    scanner: true,
+  },
 };
 
 document.addEventListener('DOMContentLoaded', () => {
   initNavigation();
   initColorPickers();
-  loadDashboardData();
   setupDropzone();
+
+  // Load lightweight stats once on initial boot, then load ONLY the active tab's data
+  fetchStats().then(() => {
+    const initialTab = state.activeTab || 'overview';
+    loadTabContent(initialTab);
+  });
 });
 
 function initColorPickers() {
@@ -79,7 +97,7 @@ function initColorPickers() {
   }
 }
 
-// NAVIGATION & TAB SWITCHING
+// NAVIGATION & TAB SWITCHING (ON-DEMAND DATA LOADING)
 function initNavigation() {
   const navItems = document.querySelectorAll('.sidebar-nav .nav-item[data-tab]');
   navItems.forEach(item => {
@@ -121,7 +139,7 @@ function switchTab(tabId) {
   const titles = {
     overview: { title: 'Dashboard Overview', subtitle: 'Real-time statistics and flashcard management system' },
     cards: { title: 'Flashcards Directory', subtitle: 'View, create, search and edit all learning flashcards' },
-    categories: { title: 'Category Decks', subtitle: 'Organize flashcards into thematic collections' },
+    categories: { title: 'Folder & Category Explorer', subtitle: 'Organize flashcards into hierarchical folders and subcategories' },
     concepts: { title: '6 Cognitive Dimensions Matrix', subtitle: 'Audit Group, Use, Action, Location, Association & Properties' },
     users: { title: 'User Management', subtitle: 'Manage student, teacher, and administrator accounts' },
     scanner: { title: 'AI Card Scanner Test', subtitle: 'Simulate mobile camera vision recognition' },
@@ -131,55 +149,173 @@ function switchTab(tabId) {
     document.getElementById('pageTitle').textContent = titles[tabId].title;
     document.getElementById('pageSubtitle').textContent = titles[tabId].subtitle;
   }
+
+  // ON-DEMAND DATA LOADING: Only load data for the active page
+  loadTabContent(tabId);
 }
 
-// DATA LOADING
+// ON-DEMAND DATA LOADERS PER TAB
+async function loadTabContent(tabId, force = false) {
+  if (!tabId) tabId = state.activeTab || 'overview';
+
+  try {
+    switch (tabId) {
+      case 'overview':
+        if (!state.loadedTabs.overview || force) {
+          await fetchStats();
+        }
+        break;
+
+      case 'categories':
+        if (!state.loadedTabs.categories || force) {
+          await fetchCategories(true);
+        }
+        break;
+
+      case 'cards':
+        if (!state.loadedTabs.cards || force) {
+          if (state.categories.length === 0) {
+            await fetchCategories(false);
+          }
+          await fetchCards();
+        }
+        break;
+
+      case 'concepts':
+        if (!state.loadedTabs.concepts || force) {
+          await fetchConceptsCards();
+        }
+        break;
+
+      case 'users':
+        if (!state.loadedTabs.users || force) {
+          await fetchUsers();
+        }
+        break;
+    }
+  } catch (err) {
+    showToast(`Error loading ${tabId}: ` + err.message, 'error');
+  }
+}
+
+async function fetchStats() {
+  try {
+    const statsRes = await fetch('/api/admin/stats').then(r => r.json()).catch(() => null);
+    if (statsRes) {
+      state.stats = statsRes;
+      renderKPIs();
+      renderDistribution();
+      const badgeCards = document.getElementById('cardCountBadge');
+      const badgeCats = document.getElementById('catCountBadge');
+      if (badgeCards) badgeCards.textContent = state.stats.total_cards || 0;
+      if (badgeCats) badgeCats.textContent = state.stats.total_categories || 0;
+    }
+    state.loadedTabs.overview = true;
+  } catch (e) {
+    console.error('Failed to fetch stats:', e);
+  }
+}
+
+async function fetchCategories(render = true) {
+  const container = document.getElementById('categoriesContainer');
+  if (render && container && state.categories.length === 0) {
+    container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 48px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:28px; color:var(--primary);"></i><p style="margin-top:8px; color:var(--text-muted);">Loading folder hierarchy...</p></div>';
+  }
+  try {
+    const cats = await fetch('/api/categories').then(r => r.json()).catch(() => []);
+    state.categories = cats;
+    populateCategoryDropdowns();
+    if (render) {
+      renderCategories();
+    }
+    state.loadedTabs.categories = true;
+    const badgeCats = document.getElementById('catCountBadge');
+    if (badgeCats) badgeCats.textContent = state.categories.length;
+  } catch (e) {
+    console.error('Failed to fetch categories:', e);
+  }
+}
+
+async function fetchCards() {
+  const container = document.getElementById('cardsContainer');
+  if (container && state.cards.length === 0) {
+    container.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding: 48px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:28px; color:var(--primary);"></i><p style="margin-top:8px; color:var(--text-muted);">Loading flashcards...</p></div>';
+  }
+  try {
+    const cards = await fetch('/api/cards').then(r => r.json()).catch(() => []);
+    state.cards = cards;
+    state.cardPage = 1;
+    filterCards();
+    state.loadedTabs.cards = true;
+    const badgeCards = document.getElementById('cardCountBadge');
+    if (badgeCards) badgeCards.textContent = state.cards.length;
+  } catch (e) {
+    console.error('Failed to fetch cards:', e);
+  }
+}
+
+async function fetchConceptsCards() {
+  const tbody = document.getElementById('conceptsMatrixBody');
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:48px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:24px; color:var(--primary);"></i><p style="margin-top:8px; color:var(--text-muted);">Loading cognitive dimensions matrix...</p></td></tr>';
+  }
+  try {
+    if (state.cards.length > 0) {
+      renderConceptsMatrix();
+    } else {
+      const cards = await fetch('/api/cards?domain=semantic').then(r => r.json()).catch(() => []);
+      state.semanticCards = cards;
+      renderConceptsMatrix();
+    }
+    state.loadedTabs.concepts = true;
+  } catch (e) {
+    console.error('Failed to fetch concepts matrix:', e);
+  }
+}
+
+async function fetchUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  if (tbody && state.users.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:32px;"><i class="fa-solid fa-spinner fa-spin" style="font-size:24px; color:var(--primary);"></i><p style="margin-top:8px; color:var(--text-muted);">Loading user directory...</p></td></tr>';
+  }
+  try {
+    const users = await fetch('/api/admin/users').then(r => r.json()).catch(() => []);
+    state.users = users;
+    renderUsers();
+    state.loadedTabs.users = true;
+  } catch (e) {
+    console.error('Failed to fetch users:', e);
+  }
+}
+
 async function loadDashboardData() {
   try {
-    const [statsRes, catsRes, cardsRes, usersRes] = await Promise.all([
-      fetch('/api/admin/stats').then(r => r.json()).catch(() => null),
-      fetch('/api/categories').then(r => r.json()).catch(() => []),
-      fetch('/api/cards').then(r => r.json()).catch(() => []),
-      fetch('/api/admin/users').then(r => r.json()).catch(() => []),
-    ]);
-
-    state.stats = statsRes || {
-      total_cards: cardsRes.length,
-      total_categories: catsRes.length,
-      total_users: usersRes.length,
-      total_attributes: cardsRes.length * 6,
-      category_distribution: [],
-    };
-    state.categories = catsRes;
-    state.cards = cardsRes;
-    state.users = usersRes;
-
-    renderKPIs();
-    renderDistribution();
-    renderCards();
-    renderCategories();
-    renderConceptsMatrix();
-    renderUsers();
-    populateCategoryDropdowns();
-
-    document.getElementById('cardCountBadge').textContent = state.cards.length;
-    document.getElementById('catCountBadge').textContent = state.categories.length;
+    showToast('Refreshing data...', 'info');
+    await fetchStats();
+    await loadTabContent(state.activeTab, true);
+    showToast('Data refreshed successfully', 'success');
   } catch (err) {
-    showToast('Failed to load dashboard data: ' + err.message, 'error');
+    showToast('Failed to refresh data: ' + err.message, 'error');
   }
 }
 
 // RENDER KPIS
 function renderKPIs() {
-  document.getElementById('kpiTotalCards').textContent = state.stats.total_cards || state.cards.length;
-  document.getElementById('kpiTotalCats').textContent = state.stats.total_categories || state.categories.length;
-  document.getElementById('kpiTotalUsers').textContent = state.stats.total_users || state.users.length;
-  document.getElementById('kpiTotalConcepts').textContent = state.stats.total_attributes || (state.cards.length * 6);
+  const kpiCards = document.getElementById('kpiTotalCards');
+  const kpiCats = document.getElementById('kpiTotalCats');
+  const kpiUsers = document.getElementById('kpiTotalUsers');
+  const kpiConcepts = document.getElementById('kpiTotalConcepts');
+
+  if (kpiCards) kpiCards.textContent = state.stats.total_cards || 0;
+  if (kpiCats) kpiCats.textContent = state.stats.total_categories || 0;
+  if (kpiUsers) kpiUsers.textContent = state.stats.total_users || 0;
+  if (kpiConcepts) kpiConcepts.textContent = state.stats.total_attributes || ((state.stats.total_cards || 0) * 6);
 }
 
 // RENDER DISTRIBUTION
 function renderDistribution() {
   const container = document.getElementById('categoryDistributionList');
+  if (!container) return;
   const dist = state.stats.category_distribution || [];
 
   if (dist.length === 0) {
@@ -209,10 +345,21 @@ function renderCards() {
   filterCards();
 }
 
+function onCardSearchInput() {
+  state.cardPage = 1;
+  filterCards();
+}
+
 function onCardDomainFilterChanged() {
   const domain = document.getElementById('cardDomainFilterSelect')?.value || '';
   state.selectedCardDomain = domain;
+  state.cardPage = 1;
   populateCategoryFilterDropdown(domain);
+  filterCards();
+}
+
+function onCategoryFilterChanged() {
+  state.cardPage = 1;
   filterCards();
 }
 
@@ -236,11 +383,22 @@ function populateCategoryFilterDropdown(domain) {
   }
 }
 
+function onCardSearchInput() {
+  state.cardPage = 1;
+  filterCards();
+}
+
+function loadMoreCards() {
+  state.cardPage++;
+  filterCards();
+}
+
 function filterCards() {
-  const query = (document.getElementById('cardSearchInput').value || '').toLowerCase();
+  const query = (document.getElementById('cardSearchInput')?.value || '').toLowerCase();
   const selectedDomain = (document.getElementById('cardDomainFilterSelect')?.value || '').toLowerCase();
   const selectedCat = document.getElementById('categoryFilterSelect')?.value;
   const container = document.getElementById('cardsContainer');
+  if (!container) return;
 
   const filtered = state.cards.filter(c => {
     const cat = state.categories.find(k => k.id === c.category_id);
@@ -268,119 +426,429 @@ function filterCards() {
     return;
   }
 
-  container.innerHTML = filtered.map(c => {
-    const cat = state.categories.find(k => k.id === c.category_id);
-    const domKey = (c.domain || cat?.domain || 'semantic').toLowerCase();
-    const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: domKey, bg: '#F1F5F9', color: '#475569' };
-    const attrs = c.attributes || {};
-    const attrList = c.attributes_list || Object.values(attrs);
-    const uploadedImagesCount = (c.image_url ? 1 : 0) + attrList.filter(a => a && (a.image_url || a.attribute_image)).length;
-    const isSyntaxCard = domKey === 'syntax';
-    const isSemanticCard = domKey === 'semantic';
+  // Pagination support: Render only the current slice of cards
+  const maxVisible = (state.cardPage || 1) * (state.cardPageSize || 24);
+  const visibleCards = filtered.slice(0, maxVisible);
 
-    let displayTitle = c.title_en || c.name || '';
-    if (isSyntaxCard && (!displayTitle || displayTitle === 'Untitled Card') && c.image_url) {
-      displayTitle = c.image_url.split('/').pop().split('?')[0];
-    }
-    if (!displayTitle) displayTitle = 'Untitled Card';
+  let html = visibleCards.map(renderCardHtml).join('');
 
-    const subnames = [c.title_ta, c.title_hi, c.title_ml].filter(Boolean).join(' • ');
-    const imageCountTag = isSemanticCard
-      ? `${uploadedImagesCount}/7 Images Loaded`
-      : `${c.image_url ? 1 : 0}/1 Image Loaded`;
-    const editBtnTitle = isSemanticCard ? 'Edit Flashcard (7 Images)' : 'Edit Flashcard';
-    const catBadgeLabel = cat ? cat.name_en : (isSyntaxCard ? 'No Category' : 'General');
-
-    return `
-      <div class="flashcard-item">
-        <div class="card-img-wrap">
-          <img src="${c.image_url || 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'}" alt="${escapeHtml(displayTitle)}" onerror="this.src='https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=600&q=80'">
-          <div style="position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
-            <span style="background:${domBadge.bg}; color:${domBadge.color}; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.15);">
-              ${escapeHtml(domBadge.label)}
-            </span>
-            <span class="card-category-badge" style="position:static;">${escapeHtml(catBadgeLabel)}</span>
-          </div>
-        </div>
-        <div class="card-content">
-          <h4 class="card-title">${escapeHtml(displayTitle)}</h4>
-          ${isSyntaxCard && c.image_url ? `<div style="font-size:11px; color:var(--text-muted); font-family:monospace; margin-bottom:4px; word-break:break-all;"><i class="fa-solid fa-file-image"></i> ${escapeHtml(c.image_url.split('/').pop().split('?')[0])}</div>` : ''}
-          ${c.subcategory ? `<span class="card-subcategory-tag"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(c.subcategory)}</span>` : ''}
-          <p class="card-subtitles" style="margin-top:6px;">${escapeHtml(subnames || (isSyntaxCard ? 'Single Image Story' : 'Multi-lingual ready'))}</p>
-          ${isSemanticCard ? `
-          <div class="concept-count-tag" style="margin-top:8px;">
-            <i class="fa-solid fa-images"></i>
-            <span>${imageCountTag}</span>
-          </div>` : ''}
-        </div>
-        <div class="card-actions-bar">
-          <button class="btn-icon" title="${editBtnTitle}" onclick="openEditCardModal(${c.id})">
-            <i class="fa-solid fa-pen-to-square"></i>
-          </button>
-          <button class="btn-icon delete" title="Delete Flashcard" onclick="deleteCard(${c.id}, '${escapeHtml(displayTitle)}')">
-            <i class="fa-solid fa-trash"></i>
-          </button>
-        </div>
+  if (visibleCards.length < filtered.length) {
+    const remaining = filtered.length - visibleCards.length;
+    html += `
+      <div id="loadMoreCardsContainer" style="grid-column: 1 / -1; text-align: center; padding: 24px 0;">
+        <button class="btn btn-secondary" onclick="loadMoreCards()" style="padding: 10px 24px; font-weight: 600; border-radius: 8px;">
+          <i class="fa-solid fa-chevron-down" style="margin-right: 8px;"></i>
+          Load More Flashcards (${remaining} remaining)
+        </button>
       </div>
     `;
-  }).join('');
+  }
+
+  container.innerHTML = html;
+}
+
+function renderCardHtml(c) {
+  const cat = state.categories.find(k => k.id === c.category_id);
+  const domKey = (c.domain || cat?.domain || 'semantic').toLowerCase();
+  const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: domKey, bg: '#F1F5F9', color: '#475569' };
+  const attrs = c.attributes || {};
+  const attrList = c.attributes_list || Object.values(attrs);
+  const uploadedImagesCount = (c.image_url ? 1 : 0) + attrList.filter(a => a && (a.image_url || a.attribute_image)).length;
+  const isSyntaxCard = domKey === 'syntax';
+  const isSemanticCard = domKey === 'semantic';
+
+  let displayTitle = c.title_en || c.name || '';
+  if (isSyntaxCard && (!displayTitle || displayTitle === 'Untitled Card') && c.image_url) {
+    displayTitle = c.image_url.split('/').pop().split('?')[0];
+  }
+  if (!displayTitle) displayTitle = 'Untitled Card';
+
+  const subnames = [c.title_ta, c.title_hi, c.title_ml].filter(Boolean).join(' • ');
+  const imageCountTag = isSemanticCard
+    ? `${uploadedImagesCount}/7 Images Loaded`
+    : `${c.image_url ? 1 : 0}/1 Image Loaded`;
+  const editBtnTitle = isSemanticCard ? 'Edit Flashcard (7 Images)' : 'Edit Flashcard';
+  const catBadgeLabel = cat ? cat.name_en : (isSyntaxCard ? 'No Category' : 'Root Deck');
+
+  // Lightweight inline SVG placeholder avoids multi-megabyte external image downloads
+  const placeholderSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'><rect width='300' height='200' fill='%23F1F5F9'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2394A3B8' font-family='sans-serif' font-size='14'>No Image</text></svg>";
+  const cardImg = c.image_url || placeholderSvg;
+
+  return `
+    <div class="flashcard-item">
+      <div class="card-img-wrap">
+        <img src="${cardImg}" alt="${escapeHtml(displayTitle)}" loading="lazy" decoding="async" onerror="this.onerror=null;this.src='${placeholderSvg}'">
+        <div style="position:absolute; top:8px; left:8px; display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+          <span style="background:${domBadge.bg}; color:${domBadge.color}; font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; box-shadow:0 1px 3px rgba(0,0,0,0.15);">
+            ${escapeHtml(domBadge.label)}
+          </span>
+          <span class="card-category-badge" style="position:static;">${escapeHtml(catBadgeLabel)}</span>
+        </div>
+      </div>
+      <div class="card-content">
+        <h4 class="card-title">${escapeHtml(displayTitle)}</h4>
+        ${isSyntaxCard && c.image_url ? `<div style="font-size:11px; color:var(--text-muted); font-family:monospace; margin-bottom:4px; word-break:break-all;"><i class="fa-solid fa-file-image"></i> ${escapeHtml(c.image_url.split('/').pop().split('?')[0])}</div>` : ''}
+        ${c.subcategory ? `<span class="card-subcategory-tag"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(c.subcategory)}</span>` : ''}
+        <p class="card-subtitles" style="margin-top:6px;">${escapeHtml(subnames || (isSyntaxCard ? 'Single Image Story' : 'Multi-lingual ready'))}</p>
+        ${isSemanticCard ? `
+        <div class="concept-count-tag" style="margin-top:8px;">
+          <i class="fa-solid fa-images"></i>
+          <span>${imageCountTag}</span>
+        </div>` : ''}
+      </div>
+      <div class="card-actions-bar">
+        <button class="btn-icon" title="${editBtnTitle}" onclick="openEditCardModal(${c.id})">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        <button class="btn-icon delete" title="Delete Flashcard" onclick="deleteCard(${c.id}, '${escapeHtml(displayTitle)}')">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// =====================================================================
+// FOLDER HIERARCHY & EXPLORER ENGINE
+// =====================================================================
+
+function getCategoryDescendantIds(catId) {
+  const descendants = new Set();
+  const queue = [catId];
+  while (queue.length > 0) {
+    const currId = queue.shift();
+    const children = state.categories.filter(c => c.parent_id === currId);
+    children.forEach(ch => {
+      if (!descendants.has(ch.id)) {
+        descendants.add(ch.id);
+        queue.push(ch.id);
+      }
+    });
+  }
+  return descendants;
+}
+
+function buildCategoryTreeOptionsHtml(domain = null, selectedId = null, excludeId = null) {
+  let cats = state.categories;
+  if (domain && domain !== 'all') {
+    cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === domain.toLowerCase());
+  }
+
+  const excludedIds = excludeId ? getCategoryDescendantIds(excludeId) : new Set();
+  if (excludeId) excludedIds.add(excludeId);
+
+  const childrenMap = {};
+  cats.forEach(c => {
+    const pid = c.parent_id || 'root';
+    if (!childrenMap[pid]) childrenMap[pid] = [];
+    childrenMap[pid].push(c);
+  });
+
+  let optionsHtml = '';
+
+  function traverse(parentId, depth) {
+    const list = childrenMap[parentId] || [];
+    list.sort((a, b) => a.name_en.localeCompare(b.name_en));
+
+    for (const c of list) {
+      if (excludedIds.has(c.id)) continue;
+      const indent = '&nbsp;&nbsp;'.repeat(depth * 3);
+      const prefix = depth > 0 ? '└─ ' : '';
+      const isSelected = selectedId && Number(selectedId) === Number(c.id);
+      optionsHtml += `<option value="${c.id}" ${isSelected ? 'selected' : ''}>${indent}${prefix}📁 ${escapeHtml(c.name_en)} (${escapeHtml(c.domain || 'semantic')})</option>`;
+      traverse(c.id, depth + 1);
+    }
+  }
+
+  traverse('root', 0);
+  return optionsHtml;
+}
+
+function populateParentCategoryDropdown(domain, selectedParentId = null, excludeId = null) {
+  const select = document.getElementById('catFormParentId');
+  if (!select) return;
+
+  const domClean = (domain || 'semantic').toLowerCase();
+  const domLabel = DOMAIN_BADGE_MAP[domClean]?.label || domClean;
+  const rootOption = `<option value="">📁 Root Level (Directly in ${escapeHtml(domLabel)})</option>`;
+  const treeOptions = buildCategoryTreeOptionsHtml(domClean, selectedParentId, excludeId);
+
+  select.innerHTML = rootOption + treeOptions;
+  if (selectedParentId) {
+    select.value = selectedParentId;
+  } else {
+    select.value = '';
+  }
+}
+
+function onCatFormDomainChanged() {
+  const domain = document.getElementById('catFormDomain')?.value || 'semantic';
+  const currentParentVal = document.getElementById('catFormParentId')?.value;
+  const excludeId = document.getElementById('catFormId')?.value ? Number(document.getElementById('catFormId').value) : null;
+  populateParentCategoryDropdown(domain, currentParentVal, excludeId);
+}
+
+function setCategoryViewMode(mode) {
+  state.categoryViewMode = mode;
+  document.getElementById('btnViewExplorer')?.classList.toggle('active', mode === 'explorer');
+  document.getElementById('btnViewFlat')?.classList.toggle('active', mode === 'flat');
+
+  const explorerView = document.getElementById('explorerViewArea');
+  const folderNavBar = document.getElementById('folderNavBar');
+  const flatView = document.getElementById('flatGridViewArea');
+
+  if (explorerView) explorerView.style.display = mode === 'explorer' ? 'block' : 'none';
+  if (folderNavBar) folderNavBar.style.display = mode === 'explorer' ? 'flex' : 'none';
+  if (flatView) flatView.style.display = mode === 'flat' ? 'block' : 'none';
+
+  renderCategories();
+}
+
+function openFolder(folderId) {
+  state.currentFolderId = folderId;
+  const folder = state.categories.find(c => c.id === folderId);
+  if (folder && folder.domain) {
+    state.selectedCategoryDomain = folder.domain;
+    document.querySelectorAll('.domain-filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-domain') === folder.domain);
+    });
+  }
+  renderCategories();
+}
+
+function navigateUpFolder() {
+  if (!state.currentFolderId) return;
+  const curr = state.categories.find(c => c.id === state.currentFolderId);
+  state.currentFolderId = curr?.parent_id || null;
+  renderCategories();
+}
+
+function navigateToBreadcrumb(targetFolderId) {
+  state.currentFolderId = targetFolderId;
+  renderCategories();
+}
+
+function openNewCardInCurrentFolder() {
+  openNewCardModal();
+  if (state.currentFolderId) {
+    const folder = state.categories.find(c => c.id === state.currentFolderId);
+    if (folder) {
+      if (document.getElementById('cardFormDomain')) {
+        document.getElementById('cardFormDomain').value = folder.domain || 'semantic';
+        onCardFormDomainChanged();
+      }
+      setTimeout(() => {
+        const catSelect = document.getElementById('cardFormCategory');
+        if (catSelect) catSelect.value = state.currentFolderId;
+      }, 50);
+    }
+  }
 }
 
 // FILTER CATEGORIES BY DOMAIN
 function filterCategoriesByDomain(domain) {
   state.selectedCategoryDomain = domain;
+  state.currentFolderId = null; // Reset to root of chosen domain
   document.querySelectorAll('.domain-filter-btn').forEach(btn => {
     btn.classList.toggle('active', btn.getAttribute('data-domain') === domain);
   });
   renderCategories();
 }
 
-// RENDER CATEGORIES
+// RENDER CATEGORIES & FOLDER EXPLORER
 function renderCategories() {
-  const container = document.getElementById('categoriesContainer');
-  let cats = state.categories;
-  if (state.selectedCategoryDomain && state.selectedCategoryDomain !== 'all') {
-    cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === state.selectedCategoryDomain.toLowerCase());
-  }
+  const isExplorer = state.categoryViewMode === 'explorer';
 
-  if (cats.length === 0) {
-    container.innerHTML = '<p class="text-muted" style="grid-column: 1/-1; text-align:center; padding: 24px;">No categories found for this domain.</p>';
+  if (!isExplorer) {
+    // FLAT GRID VIEW
+    const flatContainer = document.getElementById('flatCategoriesContainer');
+    if (!flatContainer) return;
+
+    let cats = state.categories;
+    if (state.selectedCategoryDomain && state.selectedCategoryDomain !== 'all') {
+      cats = cats.filter(c => (c.domain || 'semantic').toLowerCase() === state.selectedCategoryDomain.toLowerCase());
+    }
+
+    if (cats.length === 0) {
+      flatContainer.innerHTML = '<p class="text-muted" style="grid-column: 1/-1; text-align:center; padding: 32px;">No categories found for this domain.</p>';
+      return;
+    }
+
+    flatContainer.innerHTML = cats.map(cat => renderCategoryFolderCardHtml(cat, false)).join('');
     return;
   }
 
-  container.innerHTML = cats.map(cat => {
-    const iconClass = CATEGORY_ICON_MAP[cat.icon_name] || 'fa-folder';
-    const subnames = [cat.name_ta, cat.name_hi, cat.name_ml].filter(Boolean).join(' • ');
-    const domKey = (cat.domain || 'semantic').toLowerCase();
-    const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: cat.domain || 'Semantic', bg: '#F1F5F9', color: '#475569' };
+  // EXPLORER VIEW
+  const trailContainer = document.getElementById('folderBreadcrumbTrail');
+  const subfoldersContainer = document.getElementById('categoriesContainer');
+  const cardsContainer = document.getElementById('folderCardsContainer');
+  const btnUp = document.getElementById('btnFolderUp');
+  const subfolderBadge = document.getElementById('subfolderCountBadge');
+  const cardsBadge = document.getElementById('folderCardsCountBadge');
+  const summaryEl = document.getElementById('folderItemsSummary');
 
-    return `
-      <div class="category-card" style="border-left: 4px solid ${escapeHtml(cat.color_hex || '#4CAF50')};">
-        <div class="category-card-header">
-          <div class="category-icon-box" style="background-color: ${escapeHtml(cat.color_hex || '#E8F5E9')}; color: #1E293B;">
-            <i class="fa-solid ${iconClass}"></i>
-          </div>
-          <div style="flex:1;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-              <h4 class="category-title">${escapeHtml(cat.name_en)}</h4>
-              <span style="background:${domBadge.bg}; color:${domBadge.color}; font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px; white-space:nowrap;">
-                ${escapeHtml(domBadge.label)}
-              </span>
-            </div>
-            <p class="category-subnames">${escapeHtml(subnames || 'Collection Deck')}</p>
-            ${cat.description ? `<p style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(cat.description)}</p>` : ''}
-          </div>
+  // 1. Build Breadcrumb Trail
+  const domainLabel = state.selectedCategoryDomain === 'all'
+    ? 'All Domains'
+    : (DOMAIN_BADGE_MAP[state.selectedCategoryDomain]?.label || state.selectedCategoryDomain);
+
+  let crumbs = [];
+  if (state.currentFolderId) {
+    let curr = state.categories.find(c => c.id === state.currentFolderId);
+    while (curr) {
+      crumbs.unshift(curr);
+      curr = curr.parent_id ? state.categories.find(c => c.id === curr.parent_id) : null;
+    }
+  }
+
+  let trailHtml = `
+    <span class="breadcrumb-item ${!state.currentFolderId ? 'active' : ''}" onclick="navigateToBreadcrumb(null)" title="Domain Root">
+      <i class="fa-solid fa-layer-group"></i> ${escapeHtml(domainLabel)}
+    </span>
+  `;
+
+  crumbs.forEach((crumb, idx) => {
+    const isLast = idx === crumbs.length - 1;
+    trailHtml += `
+      <span class="breadcrumb-separator"><i class="fa-solid fa-chevron-right"></i></span>
+      <span class="breadcrumb-item ${isLast ? 'active' : ''}" ${!isLast ? `onclick="navigateToBreadcrumb(${crumb.id})"` : ''} title="${escapeHtml(crumb.name_en)}">
+        <i class="fa-solid ${isLast ? 'fa-folder-open' : 'fa-folder'}"></i> ${escapeHtml(crumb.name_en)}
+      </span>
+    `;
+  });
+
+  if (trailContainer) trailContainer.innerHTML = trailHtml;
+  if (btnUp) btnUp.disabled = state.currentFolderId === null;
+
+  // 2. Filter Subfolders
+  let subfolders = [];
+  if (state.currentFolderId === null) {
+    subfolders = state.categories.filter(c => {
+      const isRoot = !c.parent_id;
+      if (!isRoot) return false;
+      if (state.selectedCategoryDomain !== 'all') {
+        return (c.domain || 'semantic').toLowerCase() === state.selectedCategoryDomain.toLowerCase();
+      }
+      return true;
+    });
+  } else {
+    subfolders = state.categories.filter(c => c.parent_id === state.currentFolderId);
+  }
+
+  // 3. Filter Flashcards directly in this folder / root
+  let cardsInFolder = [];
+  if (state.currentFolderId === null) {
+    cardsInFolder = state.cards.filter(c => {
+      const isRootCard = !c.category_id;
+      if (!isRootCard) return false;
+      if (state.selectedCategoryDomain !== 'all') {
+        return (c.domain || 'semantic').toLowerCase() === state.selectedCategoryDomain.toLowerCase();
+      }
+      return true;
+    });
+  } else {
+    cardsInFolder = state.cards.filter(c => c.category_id === state.currentFolderId);
+  }
+
+  // 4. Render Subfolders
+  if (subfoldersContainer) {
+    if (subfolders.length === 0) {
+      subfoldersContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: #FAFBFB; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+          <i class="fa-solid fa-folder-open" style="font-size: 28px; opacity: 0.4; margin-bottom: 8px;"></i>
+          <p style="font-size: 13px; margin: 0 0 10px 0;">No subfolders inside this location.</p>
+          <button class="btn btn-sm btn-outline-primary" onclick="openNewCategoryModal(state.currentFolderId)">
+            <i class="fa-solid fa-folder-plus"></i> Create Subfolder Here
+          </button>
         </div>
-        <div class="category-footer">
-          <span class="category-count"><i class="fa-solid fa-clone"></i> ${cat.card_count || 0} Flashcards</span>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-icon" title="Edit Category" onclick="openEditCategoryModal(${cat.id})"><i class="fa-solid fa-pen"></i></button>
-            <button class="btn-icon delete" title="Delete Category" onclick="deleteCategory(${cat.id}, '${escapeHtml(cat.name_en)}')"><i class="fa-solid fa-trash"></i></button>
+      `;
+    } else {
+      subfoldersContainer.innerHTML = subfolders.map(cat => renderCategoryFolderCardHtml(cat, true)).join('');
+    }
+  }
+
+  // 5. Render Cards in Folder
+  if (cardsContainer) {
+    if (cardsInFolder.length === 0) {
+      cardsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: #FAFBFB; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+          <i class="fa-solid fa-clone" style="font-size: 28px; opacity: 0.4; margin-bottom: 8px;"></i>
+          <p style="font-size: 13px; margin: 0 0 10px 0;">No flashcards directly inside this folder.</p>
+          <button class="btn btn-sm btn-outline-primary" onclick="openNewCardInCurrentFolder()">
+            <i class="fa-solid fa-plus"></i> Add Flashcard Here
+          </button>
+        </div>
+      `;
+    } else {
+      cardsContainer.innerHTML = cardsInFolder.map(renderCardHtml).join('');
+    }
+  }
+
+  // 6. Update Badges & Summary
+  if (subfolderBadge) subfolderBadge.textContent = subfolders.length;
+  if (cardsBadge) cardsBadge.textContent = cardsInFolder.length;
+  if (summaryEl) {
+    summaryEl.textContent = `${subfolders.length} subfolders • ${cardsInFolder.length} direct cards`;
+  }
+}
+
+function renderCategoryFolderCardHtml(cat, isExplorer = true) {
+  const iconClass = CATEGORY_ICON_MAP[cat.icon_name] || 'fa-folder';
+  const subnames = [cat.name_ta, cat.name_hi, cat.name_ml].filter(Boolean).join(' • ');
+  const domKey = (cat.domain || 'semantic').toLowerCase();
+  const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: cat.domain || 'Semantic', bg: '#F1F5F9', color: '#475569' };
+  const subCount = cat.subcategories_count || 0;
+  const directCards = cat.card_count || 0;
+  const totalCards = cat.total_card_count !== undefined ? cat.total_card_count : directCards;
+
+  return `
+    <div class="category-card folder-card-clickable" style="border-left: 4px solid ${escapeHtml(cat.color_hex || '#4CAF50')};">
+      <div class="category-card-header" onclick="openFolder(${cat.id})" title="Click to open folder: ${escapeHtml(cat.name_en)}" style="cursor:pointer;">
+        <div class="category-icon-box" style="background-color: ${escapeHtml(cat.color_hex || '#E8F5E9')}; color: #1E293B;">
+          <i class="fa-solid ${iconClass}"></i>
+        </div>
+        <div style="flex:1;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <h4 class="category-title" style="display:flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-folder" style="font-size:13px; color:${escapeHtml(cat.color_hex || '#4CAF50')};"></i>
+              ${escapeHtml(cat.name_en)}
+            </h4>
+            <span style="background:${domBadge.bg}; color:${domBadge.color}; font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px; white-space:nowrap;">
+              ${escapeHtml(domBadge.label)}
+            </span>
           </div>
+          <p class="category-subnames">${escapeHtml(subnames || 'Folder Collection')}</p>
+          ${cat.description ? `<p style="font-size:12px; color:var(--text-muted); margin-top:4px;">${escapeHtml(cat.description)}</p>` : ''}
         </div>
       </div>
-    `;
-  }).join('');
+
+      <div class="folder-badges" onclick="openFolder(${cat.id})" style="cursor:pointer; padding: 4px 0;">
+        <span class="badge-subfolder" title="Nested Subfolders">
+          <i class="fa-solid fa-folder-tree"></i> ${subCount} ${subCount === 1 ? 'subfolder' : 'subfolders'}
+        </span>
+        <span class="badge-cardcount" title="${directCards} cards in this folder, ${totalCards} in folder + subfolders">
+          <i class="fa-solid fa-clone"></i> ${directCards} cards ${totalCards !== directCards ? `(${totalCards} total)` : ''}
+        </span>
+      </div>
+
+      <div class="category-footer">
+        <button class="btn btn-sm btn-outline-primary" onclick="openFolder(${cat.id})" title="Open Folder">
+          <i class="fa-solid fa-folder-open"></i> Open
+        </button>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-icon" title="Add Subfolder inside here" onclick="openNewCategoryModal(${cat.id})">
+            <i class="fa-solid fa-folder-plus"></i>
+          </button>
+          <button class="btn-icon" title="Edit Folder" onclick="openEditCategoryModal(${cat.id})">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button class="btn-icon delete" title="Delete Folder and contents" onclick="deleteCategory(${cat.id}, '${escapeHtml(cat.name_en)}')">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // RENDER 6-CONCEPT MATRIX (Semantic Domain only)
@@ -903,9 +1371,8 @@ function populateCardCategorySelect(domain, selectedCatId = null) {
     return;
   }
 
-  formSelect.innerHTML = cats.map(c => 
-    `<option value="${c.id}">${escapeHtml(c.name_en)} (${escapeHtml(c.name_ta || '')})</option>`
-  ).join('');
+  const treeOptions = buildCategoryTreeOptionsHtml(domLower, selectedCatId);
+  formSelect.innerHTML = '<option value="">-- Choose Category / Folder Deck --</option>' + treeOptions;
 
   if (selectedCatId && cats.some(c => c.id == selectedCatId)) {
     formSelect.value = selectedCatId;
@@ -1181,17 +1648,38 @@ async function deleteCard(id, title) {
 }
 
 // MODAL HANDLERS: CATEGORY
-function openNewCategoryModal() {
+// MODAL HANDLERS: CATEGORY / FOLDER
+function openNewCategoryModal(parentId = null) {
   document.getElementById('catForm').reset();
   document.getElementById('catFormId').value = '';
-  if (document.getElementById('catFormDomain')) {
-    document.getElementById('catFormDomain').value = (state.selectedCategoryDomain && state.selectedCategoryDomain !== 'all') ? state.selectedCategoryDomain : 'semantic';
+
+  const targetParentId = parentId !== null && parentId !== undefined ? parentId : state.currentFolderId;
+  const parentCat = targetParentId ? state.categories.find(c => c.id === targetParentId) : null;
+
+  let domain = 'semantic';
+  if (parentCat && parentCat.domain) {
+    domain = parentCat.domain;
+  } else if (state.selectedCategoryDomain && state.selectedCategoryDomain !== 'all') {
+    domain = state.selectedCategoryDomain;
   }
+
+  if (document.getElementById('catFormDomain')) {
+    document.getElementById('catFormDomain').value = domain;
+  }
+
+  populateParentCategoryDropdown(domain, targetParentId, null);
+
   if (document.getElementById('catFormDesc')) document.getElementById('catFormDesc').value = '';
   document.getElementById('catFormColor').value = '#E8F5E9';
   document.getElementById('colorHexDisplay').textContent = '#E8F5E9';
-  document.getElementById('catModalTitle').textContent = 'Connect & Create Category Deck';
-  document.getElementById('saveCatBtn').textContent = 'Save Category';
+
+  const modalTitle = document.getElementById('catModalTitle');
+  if (modalTitle) {
+    modalTitle.textContent = parentCat 
+      ? `Create Subfolder inside: ${parentCat.name_en}`
+      : 'Create New Folder / Category';
+  }
+  document.getElementById('saveCatBtn').textContent = 'Save Folder';
   openModal('catModal');
 }
 
@@ -1200,9 +1688,13 @@ function openEditCategoryModal(catId) {
   if (!cat) return;
 
   document.getElementById('catFormId').value = cat.id;
+  const dom = (cat.domain || 'semantic').toLowerCase();
   if (document.getElementById('catFormDomain')) {
-    document.getElementById('catFormDomain').value = cat.domain || 'semantic';
+    document.getElementById('catFormDomain').value = dom;
   }
+
+  populateParentCategoryDropdown(dom, cat.parent_id, cat.id);
+
   document.getElementById('catFormNameEn').value = cat.name_en || '';
   document.getElementById('catFormNameTa').value = cat.name_ta || '';
   document.getElementById('catFormNameHi').value = cat.name_hi || '';
@@ -1212,7 +1704,7 @@ function openEditCategoryModal(catId) {
   document.getElementById('catFormColor').value = cat.color_hex || '#E8F5E9';
   document.getElementById('colorHexDisplay').textContent = (cat.color_hex || '#E8F5E9').toUpperCase();
 
-  document.getElementById('catModalTitle').textContent = `Edit Category: ${cat.name_en}`;
+  document.getElementById('catModalTitle').textContent = `Edit Folder: ${cat.name_en}`;
   document.getElementById('saveCatBtn').textContent = 'Save Changes';
   openModal('catModal');
 }
@@ -1222,8 +1714,12 @@ async function handleCategorySubmit(e) {
   const id = document.getElementById('catFormId').value;
   const isEdit = Boolean(id);
 
+  const parentIdVal = document.getElementById('catFormParentId')?.value;
+  const parentId = parentIdVal ? parseInt(parentIdVal, 10) : null;
+
   const payload = {
     name_en: document.getElementById('catFormNameEn').value.trim(),
+    parent_id: parentId,
     name_ta: document.getElementById('catFormNameTa').value.trim(),
     name_hi: document.getElementById('catFormNameHi').value.trim(),
     name_ml: document.getElementById('catFormNameMl').value.trim(),
@@ -1245,14 +1741,19 @@ async function handleCategorySubmit(e) {
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.detail || 'Server error while saving category');
+      throw new Error(errData.detail || 'Server error while saving category folder');
     }
 
-    showToast(isEdit ? 'Category updated successfully!' : 'Category created successfully!', 'success');
+    showToast(isEdit ? 'Folder updated successfully!' : 'New folder created successfully!', 'success');
     closeModal('catModal');
-    loadDashboardData();
+    await loadDashboardData();
+    // If we just created a subfolder inside a parent, stay in that folder
+    if (!isEdit && parentId) {
+      state.currentFolderId = parentId;
+      renderCategories();
+    }
   } catch (err) {
-    showToast('Failed to save category: ' + err.message, 'error');
+    showToast('Failed to save folder: ' + err.message, 'error');
   }
 }
 

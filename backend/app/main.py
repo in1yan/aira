@@ -4,11 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 
-from .database import engine, Base, IMAGES_DIR, AUDIO_DIR, FRONTEND_DIR
+from .database import engine, Base, IMAGES_DIR, AUDIO_DIR, FRONTEND_DIR, ensure_schema_migrations
 from .routers import detect, cards, categories, tts, auth, admin
 
 # Initialize DB tables
 Base.metadata.create_all(bind=engine)
+ensure_schema_migrations()
 
 app = FastAPI(
     title="Aira Smart Flash Cards - Unified API",

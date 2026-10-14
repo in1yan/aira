@@ -43,6 +43,9 @@ else:
     # Default to local SQLite database
     SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
+from sqlalchemy import event, text
+from sqlalchemy.engine import Engine
+
 # Configure engine based on database dialect
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
     IS_SQLITE = True
@@ -50,6 +53,15 @@ if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
         SQLALCHEMY_DATABASE_URL,
         connect_args={"check_same_thread": False}
     )
+
+    @event.listens_for(Engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        try:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.close()
+        except Exception:
+            pass
 else:
     IS_SQLITE = False
     engine = create_engine(
@@ -62,10 +74,30 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+def ensure_schema_migrations():
+    """
+    Auto-migrates existing tables to ensure new columns (e.g. parent_id on categories)
+    exist in the current database.
+    """
+    try:
+        with engine.begin() as conn:
+            if IS_SQLITE:
+                # Check categories table
+                cols = [r[1] for r in conn.execute(text("PRAGMA table_info(categories);")).fetchall()]
+                if cols and "parent_id" not in cols:
+                    conn.execute(text("ALTER TABLE categories ADD COLUMN parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE;"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_categories_parent_id ON categories (parent_id);"))
+            else:
+                conn.execute(text("ALTER TABLE categories ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE;"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_categories_parent_id ON categories (parent_id);"))
+    except Exception as e:
+        print(f"[Database] Migration notice: {e}")
+
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
 

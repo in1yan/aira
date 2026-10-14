@@ -60,8 +60,14 @@ class CardAttributeInput(BaseModel):
     image_url: Optional[str] = ""
 
 # Category schemas
+class CategoryBreadcrumb(BaseModel):
+    id: int
+    name_en: str
+    domain: Optional[str] = "semantic"
+
 class CategoryCreate(BaseModel):
     name_en: str
+    parent_id: Optional[int] = None
     name_ta: Optional[str] = ""
     name_hi: Optional[str] = ""
     name_ml: Optional[str] = ""
@@ -72,6 +78,7 @@ class CategoryCreate(BaseModel):
 
 class CategoryUpdate(BaseModel):
     name_en: Optional[str] = None
+    parent_id: Optional[int] = None
     name_ta: Optional[str] = None
     name_hi: Optional[str] = None
     name_ml: Optional[str] = None
@@ -82,6 +89,7 @@ class CategoryUpdate(BaseModel):
 
 class CategoryResponse(BaseModel):
     id: int
+    parent_id: Optional[int] = None
     name_en: str
     name_ta: Optional[str] = ""
     name_hi: Optional[str] = ""
@@ -91,6 +99,9 @@ class CategoryResponse(BaseModel):
     color_hex: Optional[str] = "#E8F5E9"
     domain: Optional[str] = "semantic"
     card_count: Optional[int] = 0
+    subcategories_count: Optional[int] = 0
+    total_card_count: Optional[int] = 0
+    breadcrumbs: Optional[List[CategoryBreadcrumb]] = []
 
     class Config:
         from_attributes = True
@@ -146,6 +157,12 @@ class CardResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class CategoryContentsResponse(BaseModel):
+    category: Optional[CategoryResponse] = None
+    subcategories: List[CategoryResponse] = []
+    cards: List[CardResponse] = []
+    breadcrumbs: List[CategoryBreadcrumb] = []
 
 # Detection schemas
 class DetectionResponse(BaseModel):

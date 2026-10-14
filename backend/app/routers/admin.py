@@ -192,6 +192,8 @@ def _generate_visual_context_manifest(db: Session) -> dict:
     cats_data = [
         {
             "id": c.id,
+            "parent_id": c.parent_id,
+            "domain": c.domain or "semantic",
             "name_en": c.name_en,
             "name_ta": c.name_ta,
             "name_hi": c.name_hi,

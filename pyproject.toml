@@ -1,0 +1,35 @@
+[project]
+name = "aira"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Iniyan V", email = "viniyan563@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aiofiles>=23.1.0",
+    "boto3>=1.28.0",
+    "fastapi>=0.100.0",
+    "gtts>=2.3.2",
+    "httpx>=0.24.0",
+    "numpy>=1.24.0",
+    "opencv-python-headless>=4.8.0",
+    "passlib[bcrypt]>=1.7.4",
+    "pillow>=10.0.0",
+    "psycopg>=3.3.6",
+    "psycopg2-binary>=2.9.0",
+    "pydantic>=2.0.0",
+    "python-dotenv>=1.0.0",
+    "python-jose[cryptography]>=3.3.0",
+    "python-multipart>=0.0.6",
+    "sqlalchemy>=2.0.0",
+    "uvicorn>=0.22.0",
+]
+
+[project.scripts]
+aira = "aira:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"

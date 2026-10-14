@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session, selectinload, joinedload
 from typing import List, Optional, Dict
 from ..database import get_db
 from ..models import Card, CardAttribute, Category
@@ -19,8 +19,14 @@ CONCEPT_LABELS = {
     "attr_6": "Attribute 6"
 }
 
-def format_card_response(card: Card, db: Session) -> dict:
-    attributes = db.query(CardAttribute).filter(CardAttribute.card_id == card.id).all()
+def format_card_response(card: Card, db: Optional[Session] = None) -> dict:
+    if hasattr(card, "attributes") and card.attributes is not None:
+        attributes = card.attributes
+    elif db:
+        attributes = db.query(CardAttribute).filter(CardAttribute.card_id == card.id).all()
+    else:
+        attributes = []
+
     attr_dict = {}
     attr_list = []
     
@@ -81,11 +87,23 @@ def format_card_response(card: Card, db: Session) -> dict:
     }
 
 @router.get("", response_model=List[CardResponse])
-def get_cards(category_id: Optional[int] = None, domain: Optional[str] = None, db: Session = Depends(get_db)):
+def get_cards(
+    category_id: Optional[int] = None,
+    domain: Optional[str] = None,
+    include_subcategories: Optional[bool] = False,
+    skip: Optional[int] = Query(0, ge=0),
+    limit: Optional[int] = Query(None, ge=1),
+    db: Session = Depends(get_db)
+):
     from sqlalchemy import or_
-    query = db.query(Card)
+    query = db.query(Card).options(selectinload(Card.attributes), joinedload(Card.category))
     if category_id is not None:
-        query = query.filter(Card.category_id == category_id)
+        if include_subcategories:
+            from .categories import get_descendant_category_ids
+            all_cat_ids = list(get_descendant_category_ids(category_id, db)) + [category_id]
+            query = query.filter(Card.category_id.in_(all_cat_ids))
+        else:
+            query = query.filter(Card.category_id == category_id)
     if domain is not None and domain.strip():
         dom_clean = domain.strip().lower()
         query = query.outerjoin(Category).filter(
@@ -94,7 +112,10 @@ def get_cards(category_id: Optional[int] = None, domain: Optional[str] = None, d
                 Category.domain == dom_clean
             )
         )
-    cards = query.all()
+    if limit is not None:
+        cards = query.offset(skip).limit(limit).all()
+    else:
+        cards = query.all()
     return [format_card_response(c, db) for c in cards]
 
 @router.get("/{card_id}", response_model=CardResponse)

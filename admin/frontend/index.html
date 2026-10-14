@@ -101,6 +101,10 @@
             <i class="fa-solid fa-cloud-arrow-down"></i>
             <span>Export DB + Media</span>
           </button>
+          <button class="btn btn-secondary" onclick="openNewCategoryModal()" title="Create New Folder / Category">
+            <i class="fa-solid fa-folder-plus"></i>
+            <span>New Folder</span>
+          </button>
           <button class="btn btn-primary" onclick="openNewCardModal()">
             <i class="fa-solid fa-plus"></i>
             <span>Create Flashcard</span>
@@ -202,8 +206,8 @@
                   <div class="quick-action-item" onclick="openNewCategoryModal()">
                     <div class="action-icon blue"><i class="fa-solid fa-folder-plus"></i></div>
                     <div class="action-details">
-                      <h4>Create New Category Deck</h4>
-                      <p>Set multi-lingual name, custom icon & accent color</p>
+                      <h4>New Folder / Category Deck</h4>
+                      <p>Create root folder or nested subcategory with custom icon & accent</p>
                     </div>
                     <i class="fa-solid fa-chevron-right action-arrow"></i>
                   </div>
@@ -246,7 +250,7 @@
             <div class="panel-toolbar">
               <div class="search-box">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" id="cardSearchInput" placeholder="Search by title (English, Tamil, Hindi, Malayalam)..." oninput="filterCards()">
+                <input type="text" id="cardSearchInput" placeholder="Search by title (English, Tamil, Hindi, Malayalam)..." oninput="onCardSearchInput()">
               </div>
               <div class="filter-controls">
                 <select id="cardDomainFilterSelect" onchange="onCardDomainFilterChanged()">
@@ -257,7 +261,7 @@
                   <option value="semantic">Semantic (Content)</option>
                   <option value="pragmatic">Pragmatic (Use)</option>
                 </select>
-                <select id="categoryFilterSelect" onchange="filterCards()">
+                <select id="categoryFilterSelect" onchange="onCategoryFilterChanged()">
                   <option value="">All Categories</option>
                 </select>
                 <button class="btn btn-primary" onclick="openNewCardModal()">
@@ -272,18 +276,33 @@
           </div>
         </section>
 
-        <!-- TAB 3: CATEGORIES -->
+        <!-- TAB 3: CATEGORIES & FOLDER HIERARCHY -->
         <section id="tab-categories" class="tab-pane">
           <div class="panel">
             <div class="panel-header">
               <div class="panel-title">
                 <i class="fa-solid fa-folder-tree"></i>
-                <h3>Flashcard Categories</h3>
+                <h3 id="categoryPanelHeading">Folder & Category Explorer</h3>
               </div>
-              <button class="btn btn-primary" onclick="openNewCategoryModal()">
-                <i class="fa-solid fa-plus"></i> Add Category
-              </button>
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div class="view-toggle-group">
+                  <button type="button" class="btn-toggle active" id="btnViewExplorer" onclick="setCategoryViewMode('explorer')" title="Folder Drill-down Explorer">
+                    <i class="fa-solid fa-folder-open"></i> <span>Explorer</span>
+                  </button>
+                  <button type="button" class="btn-toggle" id="btnViewFlat" onclick="setCategoryViewMode('flat')" title="Flat Grid View">
+                    <i class="fa-solid fa-table-cells"></i> <span>All (Flat)</span>
+                  </button>
+                </div>
+                <button class="btn btn-secondary" onclick="openNewCardInCurrentFolder()" id="btnAddCardInFolderBtn" title="Add Flashcard to current folder">
+                  <i class="fa-solid fa-plus"></i> Add Card Here
+                </button>
+                <button class="btn btn-primary" onclick="openNewCategoryModal()" title="Create a new folder or subcategory">
+                  <i class="fa-solid fa-folder-plus"></i> New Folder
+                </button>
+              </div>
             </div>
+
+            <!-- Domain Switcher -->
             <div class="panel-toolbar" style="border-bottom:1px solid var(--border-color); padding: 12px 20px;">
               <div class="domain-filters" style="display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="lang-btn active domain-filter-btn" data-domain="all" onclick="filterCategoriesByDomain('all')">All Domains</button>
@@ -294,9 +313,68 @@
                 <button class="lang-btn domain-filter-btn" data-domain="pragmatic" onclick="filterCategoriesByDomain('pragmatic')">Pragmatic (Use)</button>
               </div>
             </div>
-            <div class="categories-grid" id="categoriesContainer">
-              <!-- Rendered via JS -->
+
+            <!-- Folder Breadcrumbs & Navigation Bar (for Explorer Mode) -->
+            <div class="folder-nav-bar" id="folderNavBar">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-sm btn-outline-secondary" id="btnFolderUp" onclick="navigateUpFolder()" title="Go up to parent folder" disabled>
+                  <i class="fa-solid fa-arrow-turn-up"></i> Up
+                </button>
+                <div class="breadcrumb-trail" id="folderBreadcrumbTrail">
+                  <!-- Rendered dynamically e.g. Domain Root > Animals > Domestic Animals -->
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="folder-items-summary" id="folderItemsSummary">
+                  0 folders • 0 cards
+                </span>
+              </div>
             </div>
+
+            <!-- Main Explorer Contents Area -->
+            <div id="explorerViewArea" style="padding:20px;">
+              <!-- Subfolders Section -->
+              <div class="explorer-section" id="explorerSubfoldersSection">
+                <div class="explorer-section-header">
+                  <h4 class="explorer-section-title">
+                    <i class="fa-solid fa-folder-open" style="color:var(--primary);"></i>
+                    <span>Subfolders & Categories</span>
+                    <span class="nav-badge" id="subfolderCountBadge">0</span>
+                  </h4>
+                  <button class="btn btn-sm btn-outline-primary" onclick="openNewCategoryModal(state.currentFolderId)">
+                    <i class="fa-solid fa-folder-plus"></i> New Subfolder
+                  </button>
+                </div>
+                <div class="categories-grid" id="categoriesContainer">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+
+              <!-- Cards in This Folder Section -->
+              <div class="explorer-section" id="explorerCardsSection" style="margin-top:32px;">
+                <div class="explorer-section-header">
+                  <h4 class="explorer-section-title">
+                    <i class="fa-solid fa-clone" style="color:#2196F3;"></i>
+                    <span>Flashcards in this Folder</span>
+                    <span class="nav-badge" id="folderCardsCountBadge" style="background:#E0F2FE; color:#0284C7;">0</span>
+                  </h4>
+                  <button class="btn btn-sm btn-outline-primary" onclick="openNewCardInCurrentFolder()">
+                    <i class="fa-solid fa-plus"></i> New Flashcard Here
+                  </button>
+                </div>
+                <div class="cards-grid" id="folderCardsContainer">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Flat Grid View Area (alternative view mode) -->
+            <div id="flatGridViewArea" style="display:none; padding:20px;">
+              <div class="categories-grid" id="flatCategoriesContainer">
+                <!-- All categories rendered in flat grid -->
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -701,17 +779,17 @@
   <div class="modal-overlay" id="catModal">
     <div class="modal-container">
       <div class="modal-header">
-        <h3 id="catModalTitle">Create Category</h3>
+        <h3 id="catModalTitle">Create Folder / Category</h3>
         <button class="modal-close" onclick="closeModal('catModal')"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <form id="catForm" onsubmit="handleCategorySubmit(event)">
         <input type="hidden" id="catFormId">
         <div class="modal-body">
-          <div class="form-group" style="background: rgba(76, 175, 80, 0.06); padding: 12px; border-radius: 8px; border: 1px dashed var(--primary); margin-bottom: 14px;">
+          <div class="form-group" style="background: rgba(76, 175, 80, 0.06); padding: 12px; border-radius: 8px; border: 1px dashed var(--primary); margin-bottom: 12px;">
             <label style="font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
-              <i class="fa-solid fa-diagram-project" style="color: var(--primary);"></i> Connect to Speech-Language Domain *
+              <i class="fa-solid fa-diagram-project" style="color: var(--primary);"></i> 1. Speech-Language Domain *
             </label>
-            <select id="catFormDomain" required style="font-weight: 600; width: 100%;">
+            <select id="catFormDomain" required style="font-weight: 600; width: 100%;" onchange="onCatFormDomainChanged()">
               <option value="semantic">Semantic (Content — Vocabulary, Concepts & Attributes)</option>
               <option value="phonology">Phonology (Form — Articulation & Sound Discrimination)</option>
               <option value="morphology">Morphology (Form — Word Structure, Plurals & Tenses)</option>
@@ -722,9 +800,23 @@
               Connects this deck into the Bloom & Lahey Language Acquisition triad (Content, Form, Use).
             </span>
           </div>
+
+          <div class="form-group" style="background: rgba(33, 150, 243, 0.05); padding: 12px; border-radius: 8px; border: 1px dashed #2196F3; margin-bottom: 14px;">
+            <label style="font-weight: 700; color: var(--text-dark); display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-folder-tree" style="color: #2196F3;"></i> 2. Parent Folder Location
+            </label>
+            <select id="catFormParentId" style="font-weight: 600; width: 100%;">
+              <option value="">📁 Root Level (Directly in Domain)</option>
+              <!-- Populated dynamically with folder hierarchy tree -->
+            </select>
+            <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 4px;">
+              Create at the top-level of this domain or nest inside an existing folder/category.
+            </span>
+          </div>
+
           <div class="form-group">
-            <label>English Category Name *</label>
-            <input type="text" id="catFormNameEn" required placeholder="e.g. Birds, Musical Instruments">
+            <label>Folder / Category Name (English) *</label>
+            <input type="text" id="catFormNameEn" required placeholder="e.g. Birds, Domestic Animals, Consonants">
           </div>
           <div class="form-group">
             <label>Tamil Name (தமிழ்)</label>
