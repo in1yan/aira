@@ -754,6 +754,9 @@ body {
   justify-content: space-between;
   border-top: 1px solid var(--border-light);
   padding-top: 12px;
+  margin-top: auto;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .category-count {
@@ -1796,6 +1799,29 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.btn-open-folder {
+  background: #E8F5E9 !important;
+  color: #1B5E20 !important;
+  border: 1px solid #81C784 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 6px 14px !important;
+  border-radius: var(--radius-sm) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-open-folder:hover {
+  background: #4CAF50 !important;
+  color: #FFFFFF !important;
+  border-color: #388E3C !important;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.35) !important;
 }
 
 .explorer-section-header {

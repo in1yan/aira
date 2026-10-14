@@ -605,33 +605,54 @@ function setCategoryViewMode(mode) {
 }
 
 function openFolder(folderId) {
-  state.currentFolderId = folderId;
-  const folder = state.categories.find(c => c.id === folderId);
-  if (folder && folder.domain) {
-    state.selectedCategoryDomain = folder.domain;
-    document.querySelectorAll('.domain-filter-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.getAttribute('data-domain') === folder.domain);
-    });
+  state.currentFolderId = (folderId !== null && folderId !== undefined && folderId !== '') ? Number(folderId) : null;
+
+  // Automatically switch to Explorer view mode so folder contents are shown
+  if (state.categoryViewMode !== 'explorer') {
+    state.categoryViewMode = 'explorer';
+    document.getElementById('btnViewExplorer')?.classList.add('active');
+    document.getElementById('btnViewFlat')?.classList.remove('active');
+    const explorerView = document.getElementById('explorerViewArea');
+    const folderNavBar = document.getElementById('folderNavBar');
+    const flatView = document.getElementById('flatGridViewArea');
+    if (explorerView) explorerView.style.display = 'block';
+    if (folderNavBar) folderNavBar.style.display = 'flex';
+    if (flatView) flatView.style.display = 'none';
   }
+
+  if (state.currentFolderId !== null) {
+    const folder = state.categories.find(c => Number(c.id) === Number(state.currentFolderId));
+    if (folder && folder.domain) {
+      state.selectedCategoryDomain = folder.domain;
+      document.querySelectorAll('.domain-filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-domain') === folder.domain);
+      });
+    }
+  }
+
   renderCategories();
 }
 
 function navigateUpFolder() {
-  if (!state.currentFolderId) return;
-  const curr = state.categories.find(c => c.id === state.currentFolderId);
-  state.currentFolderId = curr?.parent_id || null;
+  if (state.currentFolderId === null || state.currentFolderId === undefined) return;
+  const curr = state.categories.find(c => Number(c.id) === Number(state.currentFolderId));
+  state.currentFolderId = (curr && curr.parent_id !== null && curr.parent_id !== undefined && curr.parent_id !== '')
+    ? Number(curr.parent_id)
+    : null;
   renderCategories();
 }
 
 function navigateToBreadcrumb(targetFolderId) {
-  state.currentFolderId = targetFolderId;
+  state.currentFolderId = (targetFolderId !== null && targetFolderId !== undefined && targetFolderId !== '')
+    ? Number(targetFolderId)
+    : null;
   renderCategories();
 }
 
 function openNewCardInCurrentFolder() {
   openNewCardModal();
   if (state.currentFolderId) {
-    const folder = state.categories.find(c => c.id === state.currentFolderId);
+    const folder = state.categories.find(c => Number(c.id) === Number(state.currentFolderId));
     if (folder) {
       if (document.getElementById('cardFormDomain')) {
         document.getElementById('cardFormDomain').value = folder.domain || 'semantic';
@@ -693,11 +714,15 @@ function renderCategories() {
     : (DOMAIN_BADGE_MAP[state.selectedCategoryDomain]?.label || state.selectedCategoryDomain);
 
   let crumbs = [];
-  if (state.currentFolderId) {
-    let curr = state.categories.find(c => c.id === state.currentFolderId);
-    while (curr) {
+  if (state.currentFolderId !== null && state.currentFolderId !== undefined) {
+    let curr = state.categories.find(c => Number(c.id) === Number(state.currentFolderId));
+    const visited = new Set();
+    while (curr && !visited.has(Number(curr.id))) {
+      visited.add(Number(curr.id));
       crumbs.unshift(curr);
-      curr = curr.parent_id ? state.categories.find(c => c.id === curr.parent_id) : null;
+      curr = (curr.parent_id !== null && curr.parent_id !== undefined && curr.parent_id !== '')
+        ? state.categories.find(c => Number(c.id) === Number(curr.parent_id))
+        : null;
     }
   }
 
@@ -722,7 +747,7 @@ function renderCategories() {
 
   // 2. Filter Subfolders
   let subfolders = [];
-  if (state.currentFolderId === null) {
+  if (state.currentFolderId === null || state.currentFolderId === undefined) {
     subfolders = state.categories.filter(c => {
       const isRoot = !c.parent_id;
       if (!isRoot) return false;
@@ -732,22 +757,24 @@ function renderCategories() {
       return true;
     });
   } else {
-    subfolders = state.categories.filter(c => c.parent_id === state.currentFolderId);
+    subfolders = state.categories.filter(c => Number(c.parent_id) === Number(state.currentFolderId));
   }
 
   // 3. Filter Flashcards directly in this folder / root
   let cardsInFolder = [];
-  if (state.currentFolderId === null) {
+  if (state.currentFolderId === null || state.currentFolderId === undefined) {
     cardsInFolder = state.cards.filter(c => {
       const isRootCard = !c.category_id;
       if (!isRootCard) return false;
       if (state.selectedCategoryDomain !== 'all') {
-        return (c.domain || 'semantic').toLowerCase() === state.selectedCategoryDomain.toLowerCase();
+        const cat = state.categories.find(k => Number(k.id) === Number(c.category_id));
+        const cardDomain = (c.domain || cat?.domain || 'semantic').toLowerCase();
+        return cardDomain === state.selectedCategoryDomain.toLowerCase();
       }
       return true;
     });
   } else {
-    cardsInFolder = state.cards.filter(c => c.category_id === state.currentFolderId);
+    cardsInFolder = state.cards.filter(c => Number(c.category_id) === Number(state.currentFolderId));
   }
 
   // 4. Render Subfolders
@@ -757,7 +784,7 @@ function renderCategories() {
         <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: #FAFBFB; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
           <i class="fa-solid fa-folder-open" style="font-size: 28px; opacity: 0.4; margin-bottom: 8px;"></i>
           <p style="font-size: 13px; margin: 0 0 10px 0;">No subfolders inside this location.</p>
-          <button class="btn btn-sm btn-outline-primary" onclick="openNewCategoryModal(state.currentFolderId)">
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="openNewCategoryModal(state.currentFolderId)">
             <i class="fa-solid fa-folder-plus"></i> Create Subfolder Here
           </button>
         </div>
@@ -774,7 +801,7 @@ function renderCategories() {
         <div style="grid-column: 1 / -1; padding: 24px; text-align: center; color: var(--text-muted); background: #FAFBFB; border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
           <i class="fa-solid fa-clone" style="font-size: 28px; opacity: 0.4; margin-bottom: 8px;"></i>
           <p style="font-size: 13px; margin: 0 0 10px 0;">No flashcards directly inside this folder.</p>
-          <button class="btn btn-sm btn-outline-primary" onclick="openNewCardInCurrentFolder()">
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="openNewCardInCurrentFolder()">
             <i class="fa-solid fa-plus"></i> Add Flashcard Here
           </button>
         </div>
@@ -797,13 +824,14 @@ function renderCategoryFolderCardHtml(cat, isExplorer = true) {
   const subnames = [cat.name_ta, cat.name_hi, cat.name_ml].filter(Boolean).join(' • ');
   const domKey = (cat.domain || 'semantic').toLowerCase();
   const domBadge = DOMAIN_BADGE_MAP[domKey] || { label: cat.domain || 'Semantic', bg: '#F1F5F9', color: '#475569' };
-  const subCount = cat.subcategories_count || 0;
-  const directCards = cat.card_count || 0;
-  const totalCards = cat.total_card_count !== undefined ? cat.total_card_count : directCards;
+  const subCount = Number(cat.subcategories_count || 0);
+  const directCards = Number(cat.card_count || 0);
+  const totalCards = cat.total_card_count !== undefined ? Number(cat.total_card_count) : directCards;
+  const safeNameJs = (cat.name_en || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
   return `
-    <div class="category-card folder-card-clickable" style="border-left: 4px solid ${escapeHtml(cat.color_hex || '#4CAF50')};">
-      <div class="category-card-header" onclick="openFolder(${cat.id})" title="Click to open folder: ${escapeHtml(cat.name_en)}" style="cursor:pointer;">
+    <div class="category-card folder-card-clickable" onclick="openFolder(${cat.id})" data-folder-id="${cat.id}" style="border-left: 4px solid ${escapeHtml(cat.color_hex || '#4CAF50')}; cursor: pointer;">
+      <div class="category-card-header" title="Click to open folder: ${escapeHtml(cat.name_en)}">
         <div class="category-icon-box" style="background-color: ${escapeHtml(cat.color_hex || '#E8F5E9')}; color: #1E293B;">
           <i class="fa-solid ${iconClass}"></i>
         </div>
@@ -822,7 +850,7 @@ function renderCategoryFolderCardHtml(cat, isExplorer = true) {
         </div>
       </div>
 
-      <div class="folder-badges" onclick="openFolder(${cat.id})" style="cursor:pointer; padding: 4px 0;">
+      <div class="folder-badges" style="padding: 4px 0;">
         <span class="badge-subfolder" title="Nested Subfolders">
           <i class="fa-solid fa-folder-tree"></i> ${subCount} ${subCount === 1 ? 'subfolder' : 'subfolders'}
         </span>
@@ -831,18 +859,18 @@ function renderCategoryFolderCardHtml(cat, isExplorer = true) {
         </span>
       </div>
 
-      <div class="category-footer">
-        <button class="btn btn-sm btn-outline-primary" onclick="openFolder(${cat.id})" title="Open Folder">
-          <i class="fa-solid fa-folder-open"></i> Open
+      <div class="category-footer" style="margin-top:auto;">
+        <button type="button" class="btn btn-sm btn-open-folder" onclick="event.stopPropagation(); openFolder(${cat.id})" title="Open Folder ${escapeHtml(cat.name_en)}">
+          <i class="fa-solid fa-folder-open"></i> Open Folder
         </button>
-        <div style="display:flex; gap:6px;">
-          <button class="btn-icon" title="Add Subfolder inside here" onclick="openNewCategoryModal(${cat.id})">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button type="button" class="btn-icon" title="Add Subfolder inside here" onclick="event.stopPropagation(); openNewCategoryModal(${cat.id})">
             <i class="fa-solid fa-folder-plus"></i>
           </button>
-          <button class="btn-icon" title="Edit Folder" onclick="openEditCategoryModal(${cat.id})">
+          <button type="button" class="btn-icon" title="Edit Folder" onclick="event.stopPropagation(); openEditCategoryModal(${cat.id})">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button class="btn-icon delete" title="Delete Folder and contents" onclick="deleteCategory(${cat.id}, '${escapeHtml(cat.name_en)}')">
+          <button type="button" class="btn-icon delete" title="Delete Folder and contents" onclick="event.stopPropagation(); deleteCategory(${cat.id}, '${safeNameJs}')">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>

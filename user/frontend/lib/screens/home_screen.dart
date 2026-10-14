@@ -217,6 +217,28 @@ class _HomeScreenState extends State<HomeScreen>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // REC logo 
+        Image.asset(
+          'assets/rec-logo-small-nobg.png',
+          width: 94,
+          height: 94,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF8B1538).withValues(alpha: 0.1),
+              border: Border.all(color: const Color(0xFF8B1538), width: 1.5),
+            ),
+            child: const Icon(
+              Icons.school_rounded,
+              color: Color(0xFF8B1538),
+              size: 28,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
         // NIEPMD Logo
         Image.asset(
           'assets/niepmd-logo.png',
@@ -260,27 +282,6 @@ class _HomeScreenState extends State<HomeScreen>
                 ],
               ),
             ],
-          ),
-        ),
-        // REC logo 
-        Image.asset(
-          'assets/rec-logo-small-nobg.png',
-          width: 94,
-          height: 94,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) => Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: const Color(0xFF8B1538).withValues(alpha: 0.1),
-              border: Border.all(color: const Color(0xFF8B1538), width: 1.5),
-            ),
-            child: const Icon(
-              Icons.school_rounded,
-              color: Color(0xFF8B1538),
-              size: 28,
-            ),
           ),
         ),
         const SizedBox(width: 12),
