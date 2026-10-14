@@ -53,3 +53,6 @@ def root():
 @app.get("/health")
 def health_check():
     return {"status": "ok", "service": "user-backend"}
+@app.head("/health")
+def health_check():
+    return
