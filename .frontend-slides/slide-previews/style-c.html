@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aira Poster — Sensory Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* === FIXED STAGE BASE (from viewport-base.css) === */
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg,#fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:hidden; opacity:0; pointer-events:none; background:var(--slide-bg,#fff); }
+.slide.active, .slide.visible { visibility:visible; opacity:1; pointer-events:auto; z-index:1; }
+img, video, canvas, svg { max-width:100%; max-height:100%; }
+.deck-controls { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:1000; }
+@media print { html,body{width:1920px;height:auto;overflow:visible;background:#fff;} .deck-viewport{position:static;overflow:visible;background:#fff;} .deck-stage{position:static;width:auto;height:auto;transform:none!important;background:none;} .slide{position:relative;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:1920px;height:1080px;break-after:page;page-break-after:always;} .slide:last-child{break-after:auto;page-break-after:auto;} .deck-controls{display:none!important;} }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.2s!important;} }
+
+/* === POSTER STAGE — A2 PORTRAIT PROPORTION (780 x 1103) === */
+:root {
+  --stage-bg:#071611;
+  --pine:#0C2A23;
+  --pine-2:#12382E;
+  --paper:#F4E9D8;
+  --lime:#D8F25E;
+  --verm:#E4572E;
+  --ink:#08140F;
+  --faint:rgba(244,233,216,.14);
+}
+.deck-stage { width:780px; height:1103px; background:var(--pine); color:var(--paper); }
+
+/* === CANVAS: GRID + GLOW === */
+.poster {
+  position:relative; box-sizing:border-box; padding:34px 40px 30px;
+  background:
+    radial-gradient(520px 420px at 84% 20%, rgba(216,242,94,.13), transparent 68%),
+    radial-gradient(420px 360px at 4% 66%, rgba(228,87,46,.12), transparent 70%),
+    repeating-linear-gradient(0deg, var(--faint) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(90deg, var(--faint) 0 1px, transparent 1px 46px),
+    var(--pine);
+  overflow:hidden;
+}
+.poster::before {
+  content:""; position:absolute; inset:16px; border:1px solid rgba(244,233,216,.3); pointer-events:none;
+}
+
+/* === HEADER === */
+.header { position:relative; z-index:4; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.brand { display:flex; align-items:center; gap:12px; background:var(--paper); border-radius:4px; padding:8px 14px; color:var(--ink); }
+.brand img.niepmd { width:40px; height:40px; object-fit:contain; }
+.brand img.rec { width:94px; height:auto; object-fit:contain; }
+.brand .sep { width:1px; height:30px; background:rgba(8,20,15,.28); }
+.stamp { text-align:right; font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:.14em; text-transform:uppercase; line-height:1.7; color:rgba(244,233,216,.72); }
+.stamp b { color:var(--lime); font-weight:600; }
+
+/* === HERO === */
+.hero { position:relative; z-index:4; margin-top:34px; }
+.eyebrow { font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--lime); display:flex; align-items:center; gap:10px; }
+.eyebrow::before { content:""; width:30px; height:1px; background:var(--lime); }
+
+.headline { font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:76px; line-height:.94; letter-spacing:-.045em; margin:18px 0 0; color:var(--paper); }
+.headline .serif { font-family:"Instrument Serif",serif; font-style:italic; font-weight:400; color:var(--lime); letter-spacing:-.02em; }
+.headline .outline { color:transparent; -webkit-text-stroke:1.5px var(--paper); }
+.headline .dot { color:var(--verm); }
+
+.lede { font-family:"Bricolage Grotesque",sans-serif; font-weight:400; font-size:13px; line-height:1.58; color:rgba(244,233,216,.82); max-width:395px; margin:18px 0 0; }
+.lede b { color:var(--paper); font-weight:600; }
+
+/* === CONCEPT ORBIT === */
+.orbit-wrap { position:relative; z-index:4; display:grid; grid-template-columns:1fr 275px; gap:18px; align-items:center; margin-top:30px; }
+.orbit-copy { font-family:"Bricolage Grotesque",sans-serif; }
+.orbit-copy .mini-label { font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:.18em; text-transform:uppercase; color:rgba(244,233,216,.55); margin-bottom:10px; }
+.orbit-copy h2 { font-family:"Instrument Serif",serif; font-weight:400; font-size:29px; line-height:1.08; margin:0 0 10px; color:var(--paper); }
+.orbit-copy h2 em { color:var(--lime); }
+.orbit-copy p { font-size:10.5px; line-height:1.55; color:rgba(244,233,216,.66); margin:0; }
+.orbit-copy .chips { display:flex; gap:6px; margin-top:13px; flex-wrap:wrap; }
+.orbit-copy .chips span { font-family:"IBM Plex Mono",monospace; font-size:8px; letter-spacing:.08em; text-transform:uppercase; border:1px solid rgba(244,233,216,.3); border-radius:999px; padding:4px 8px; color:rgba(244,233,216,.8); }
+
+.orbit {
+  width:275px; height:275px; border-radius:999px; position:relative;
+  border:1px solid rgba(244,233,216,.3);
+  background:radial-gradient(circle at 50% 50%, rgba(216,242,94,.12), transparent 62%);
+  display:grid; place-items:center;
+}
+.orbit::before { content:""; position:absolute; inset:30px; border-radius:999px; border:1px dashed rgba(244,233,216,.22); }
+.orbit::after { content:""; position:absolute; inset:72px; border-radius:999px; border:1px solid rgba(244,233,216,.16); }
+.core { width:78px; height:78px; border-radius:999px; background:var(--paper); color:var(--ink); display:grid; place-items:center; text-align:center; position:relative; z-index:3; box-shadow:0 0 0 6px rgba(244,233,216,.08); }
+.core b { display:block; font-family:"Bricolage Grotesque",sans-serif; font-size:19px; line-height:1; letter-spacing:-.03em; }
+.core small { display:block; font-family:"IBM Plex Mono",monospace; font-size:6.5px; letter-spacing:.12em; text-transform:uppercase; margin-top:4px; color:#4F5E4A; }
+.node { position:absolute; font-family:"IBM Plex Mono",monospace; font-size:7.5px; letter-spacing:.08em; text-transform:uppercase; padding:5px 9px; border-radius:999px; border:1px solid rgba(244,233,216,.35); background:var(--pine-2); color:var(--paper); white-space:nowrap; z-index:4; }
+.node.n1{ top:2px; left:50%; transform:translateX(-50%); border-color:var(--lime); color:var(--lime); }
+.node.n2{ top:64px; right:-20px; }
+.node.n3{ bottom:64px; right:-18px; }
+.node.n4{ bottom:0px; left:50%; transform:translateX(-50%); }
+.node.n5{ bottom:64px; left:-18px; }
+.node.n6{ top:64px; left:-20px; }
+.spoke { position:absolute; left:50%; top:50%; width:1px; height:104px; background:rgba(244,233,216,.18); transform-origin:top center; z-index:1; }
+.spoke.s1{transform:translateX(-50%) rotate(0deg);} .spoke.s2{transform:translateX(-50%) rotate(60deg);} .spoke.s3{transform:translateX(-50%) rotate(120deg);}
+.spoke.s4{transform:translateX(-50%) rotate(180deg);} .spoke.s5{transform:translateX(-50%) rotate(240deg);} .spoke.s6{transform:translateX(-50%) rotate(300deg);}
+
+/* === PAPER STRIP === */
+.strip {
+  position:relative; z-index:4; margin:28px -40px 0; background:var(--paper); color:var(--ink);
+  padding:22px 40px 20px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:0;
+}
+.strip .item { padding:2px 16px; border-right:1px solid rgba(8,20,15,.22); }
+.strip .item:first-child { padding-left:0; }
+.strip .item:last-child { border-right:none; padding-right:0; }
+.strip .n { font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:.14em; color:var(--verm); font-weight:600; }
+.strip h3 { font-family:"Bricolage Grotesque",sans-serif; font-size:16px; letter-spacing:-.02em; margin:6px 0 5px; font-weight:700; }
+.strip p { font-family:"Bricolage Grotesque",sans-serif; font-size:9px; line-height:1.45; margin:0; color:#3D4A41; }
+
+/* === CREDITS === */
+.credits { position:relative; z-index:4; display:flex; justify-content:space-between; gap:14px; margin-top:24px; padding-top:10px; border-top:1px solid rgba(244,233,216,.22); font-family:"IBM Plex Mono",monospace; font-size:8px; letter-spacing:.12em; text-transform:uppercase; color:rgba(244,233,216,.55); }
+.credits b { color:var(--paper); font-weight:500; }
+
+/* === FOOTER === */
+.footer { position:relative; z-index:4; display:flex; justify-content:space-between; align-items:center; margin-top:16px; font-family:"IBM Plex Mono",monospace; font-size:8.5px; letter-spacing:.14em; text-transform:uppercase; color:rgba(244,233,216,.55); }
+.footer .line { flex:1; height:1px; background:rgba(244,233,216,.22); margin:0 14px; }
+.footer b { color:var(--lime); font-weight:500; }
+
+/* === MOTION === */
+.header,.hero,.orbit-wrap,.langs,.strip,.credits,.footer { opacity:0; transform:translateY(16px); animation:rise .8s cubic-bezier(.2,.8,.2,1) forwards; }
+.hero{animation-delay:.1s;} .orbit-wrap{animation-delay:.22s;} .langs{animation-delay:.3s;} .strip{animation-delay:.38s;} .credits{animation-delay:.44s;} .footer{animation-delay:.5s;}
+@keyframes rise { to { opacity:1; transform:translateY(0); } }
+.orbit { animation:pulse 5s ease-in-out infinite alternate; }
+@keyframes pulse { from { box-shadow:0 0 0 0 rgba(216,242,94,.0); } to { box-shadow:0 0 0 14px rgba(216,242,94,.06); } }
+
+/* === LANGUAGE ROW === */
+.langs { position:relative; z-index:4; display:flex; align-items:center; gap:10px; margin-top:22px; }
+.langs .tag { font-family:"IBM Plex Mono",monospace; font-size:8.5px; letter-spacing:.18em; text-transform:uppercase; color:rgba(244,233,216,.55); }
+.langs .list { display:flex; gap:7px; flex-wrap:wrap; }
+.langs .list span { font-family:"Bricolage Grotesque",sans-serif; font-size:10px; font-weight:600; border:1px solid rgba(244,233,216,.32); border-radius:999px; padding:5px 12px; color:var(--paper); }
+.langs .list span:first-child { background:var(--lime); color:var(--ink); border-color:var(--lime); }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <main class="deck-stage poster">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="brand">
+        <img class="niepmd" src="../../user/frontend/assets/niepmd-logo.png" alt="NIEPMD">
+        <div class="sep"></div>
+        <img class="rec" src="../../user/frontend/assets/rec-logo-small-nobg.png" alt="Rajalakshmi Engineering College">
+      </div>
+      <div class="stamp"><b>Aira</b> / assistive learning<br>Tech fest · 2026</div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="eyebrow">One card · Six concepts · Four languages</div>
+      <h1 class="headline">Every picture<br>has <span class="serif">six</span> ways<br><span class="outline">in</span><span class="dot">.</span></h1>
+      <p class="lede">Aira turns a single printed flashcard into a concept map a child can <b>see, hear and explore</b> — built for learners who need more than a word and a picture.</p>
+    </section>
+
+    <!-- ORBIT -->
+    <section class="orbit-wrap">
+      <div class="orbit-copy">
+        <div class="mini-label">The concept matrix</div>
+        <h2>Not one answer.<br><em>A whole neighbourhood.</em></h2>
+        <p>Every card carries six linked attributes, each with its own image and narration, so vocabulary becomes understanding.</p>
+        <div class="chips"><span>ORB vision</span><span>FastAPI</span><span>Flutter</span><span>gTTS</span></div>
+      </div>
+
+      <div class="orbit" aria-label="Six concept attributes orbiting a flashcard">
+        <span class="spoke s1"></span><span class="spoke s2"></span><span class="spoke s3"></span>
+        <span class="spoke s4"></span><span class="spoke s5"></span><span class="spoke s6"></span>
+        <div class="core"><div><b>Dog</b><small>Flashcard</small></div></div>
+        <span class="node n1">Group</span>
+        <span class="node n2">Use</span>
+        <span class="node n3">Action</span>
+        <span class="node n4">Properties</span>
+        <span class="node n5">Location</span>
+        <span class="node n6">Association</span>
+      </div>
+    </section>
+
+    <!-- LANGUAGES -->
+    <section class="langs">
+      <span class="tag">Narration</span>
+      <div class="list"><span>English</span><span>Tamil</span><span>Hindi</span><span>Malayalam</span></div>
+    </section>
+
+    <!-- PAPER STRIP -->
+    <section class="strip">
+      <div class="item">
+        <div class="n">01 / SCAN</div>
+        <h3>Point, don't search.</h3>
+        <p>Camera recognition works on printed cards — no menu, no typing.</p>
+      </div>
+      <div class="item">
+        <div class="n">02 / EXPLORE</div>
+        <h3>Tap from idea to idea.</h3>
+        <p>Six attributes unfold with pictures, examples and simple language.</p>
+      </div>
+      <div class="item">
+        <div class="n">03 / LISTEN</div>
+        <h3>Hear it in your language.</h3>
+        <p>English, Tamil, Hindi and Malayalam audio, generated on demand.</p>
+      </div>
+    </section>
+
+    <!-- CREDITS -->
+    <section class="credits">
+      <span>Built with <b>NIEPMD</b> · Rajalakshmi Engineering College</span>
+      <span>FastAPI · Flutter · OpenCV · gTTS</span>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <span>NIEPMD × REC</span>
+      <span class="line"></span>
+      <span>Scan <b>·</b> Explore <b>·</b> Understand</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+/* === SCALE THE FIXED A2 STAGE TO THE VIEWPORT === */
+const stage = document.querySelector('.deck-stage');
+const W = 780, H = 1103;
+function fit() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  stage.style.transform = `translate(${(window.innerWidth - W * s) / 2}px, ${(window.innerHeight - H * s) / 2}px) scale(${s})`;
+}
+window.addEventListener('resize', fit);
+fit();
+</script>
+</body>
+</html>

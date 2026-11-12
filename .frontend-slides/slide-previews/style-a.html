@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aira Poster — Editorial Red</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* === FIXED STAGE BASE (from viewport-base.css) === */
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg,#000); }
+.deck-stage { position:absolute; left:0; top:0; width:1920px; height:1080px; overflow:hidden; transform-origin:0 0; background:var(--slide-bg,#fff); }
+.slide { position:absolute; inset:0; width:1920px; height:1080px; overflow:hidden; display:block; visibility:hidden; opacity:0; pointer-events:none; background:var(--slide-bg,#fff); }
+.slide.active, .slide.visible { visibility:visible; opacity:1; pointer-events:auto; z-index:1; }
+img, video, canvas, svg { max-width:100%; max-height:100%; }
+.deck-controls { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:1000; }
+@media print { html,body{width:1920px;height:auto;overflow:visible;background:#fff;} .deck-viewport{position:static;overflow:visible;background:#fff;} .deck-stage{position:static;width:auto;height:auto;transform:none!important;background:none;} .slide{position:relative;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:1920px;height:1080px;break-after:page;page-break-after:always;} .slide:last-child{break-after:auto;page-break-after:auto;} .deck-controls{display:none!important;} }
+@media (prefers-reduced-motion: reduce) { *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.2s!important;} }
+
+/* === POSTER STAGE — A2 PORTRAIT PROPORTION (780 x 1103) === */
+:root {
+  --stage-bg: #191411;
+  --paper: #FFFFFF;
+  --off: #F5F2EF;
+  --ink: #1C1410;
+  --red: #D8000F;
+  --muted: #7A6F68;
+}
+.deck-stage { width:780px; height:1103px; background:var(--paper); color:var(--ink); }
+
+/* === PAPER TEXTURE + FRAME === */
+.poster {
+  position:relative;
+  padding:38px 44px 40px;
+  box-sizing:border-box;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(216,0,15,0.045), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(28,20,16,0.022) 0 1px, transparent 1px 5px),
+    var(--paper);
+}
+.poster::after {
+  content:""; position:absolute; inset:18px; border:1.5px solid var(--ink); pointer-events:none;
+}
+
+/* === MASTHEAD === */
+.masthead { display:flex; align-items:center; justify-content:space-between; gap:16px; position:relative; z-index:2; }
+.logos { display:flex; align-items:center; gap:14px; }
+.logos img.niepmd { width:54px; height:54px; object-fit:contain; }
+.logos img.rec { width:116px; height:auto; object-fit:contain; }
+.logos .divider { width:1px; height:38px; background:rgba(28,20,16,.35); }
+.meta { text-align:right; font-family:"Space Grotesk",sans-serif; font-size:10.5px; line-height:1.55; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+.meta strong { color:var(--ink); font-weight:700; }
+.top-rule { height:3px; background:var(--ink); margin:20px 0 0; position:relative; z-index:2; }
+.top-rule span { display:block; height:3px; width:34%; background:var(--red); margin-top:3px; }
+
+/* === HERO === */
+.hero { position:relative; z-index:2; padding-top:26px; }
+.eyebrow { font-family:"Space Grotesk",sans-serif; font-size:11px; font-weight:600; letter-spacing:.22em; text-transform:uppercase; color:var(--red); display:flex; align-items:center; gap:10px; }
+.eyebrow::before { content:""; width:26px; height:2px; background:var(--red); }
+
+.display {
+  font-family:"Shrikhand",serif;
+  font-weight:400;
+  font-size:194px;
+  line-height:.82;
+  letter-spacing:-.02em;
+  margin:14px 0 0 -8px;
+  transform:rotate(-4deg);
+  transform-origin:left center;
+  color:var(--ink);
+  text-shadow:9px 9px 0 var(--red);
+  position:relative;
+}
+.display .dot { color:var(--red); text-shadow:none; }
+
+.hero-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:22px; margin-top:18px; align-items:end; }
+.tagline { font-family:"Libre Baskerville",serif; font-size:30px; line-height:1.16; margin:0; letter-spacing:-.01em; }
+.tagline em { color:var(--red); font-style:italic; }
+.blurb { font-family:"Libre Baskerville",serif; font-size:11.5px; line-height:1.62; margin:0 0 2px; color:#3A2E27; }
+.blurb b { color:var(--ink); }
+
+/* === RED BAND === */
+.band {
+  margin:22px -44px 0; background:var(--red); color:#fff;
+  font-family:"Space Grotesk",sans-serif; font-size:12px; font-weight:600;
+  letter-spacing:.26em; text-transform:uppercase;
+  display:flex; justify-content:space-between; padding:12px 44px;
+  position:relative; z-index:2;
+}
+.band span:nth-child(even) { opacity:.55; }
+
+/* === HINT OF POSTER CONTENT === */
+.teaser { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; border:2px solid var(--ink); margin-top:24px; position:relative; z-index:2; background:var(--off); }
+.teaser .cell { padding:14px 15px 16px; border-right:1.5px solid var(--ink); }
+.teaser .cell:last-child { border-right:none; }
+.teaser .num { font-family:"Shrikhand",serif; font-size:30px; line-height:1; color:var(--red); }
+.teaser h3 { font-family:"Space Grotesk",sans-serif; font-size:10px; letter-spacing:.12em; text-transform:uppercase; margin:6px 0 5px; }
+.teaser p { font-family:"Libre Baskerville",serif; font-size:9.5px; line-height:1.45; margin:0; color:#4A3C34; }
+
+/* === PIPELINE === */
+.pipeline { margin-top:22px; border-top:2px solid var(--ink); padding-top:13px; position:relative; z-index:2; }
+.pipeline .label { font-family:"Space Grotesk",sans-serif; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin-bottom:9px; }
+.pipe-row { display:flex; align-items:center; gap:9px; }
+.pipe {
+  flex:1; border:1.5px solid var(--ink); background:var(--off); padding:9px 10px;
+  font-family:"Space Grotesk",sans-serif; font-size:9.5px; font-weight:600; letter-spacing:.03em;
+}
+.pipe small { display:block; font-size:7.5px; font-weight:400; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+.pipe-arrow { font-family:"Space Grotesk",sans-serif; color:var(--red); font-weight:700; font-size:13px; }
+
+/* === IMPACT FIGURES === */
+.impact { display:grid; grid-template-columns:repeat(4,1fr); margin-top:20px; border-top:2px solid var(--ink); border-bottom:2px solid var(--ink); position:relative; z-index:2; }
+.impact .stat { padding:12px 10px 13px; border-right:1.5px solid var(--ink); }
+.impact .stat:last-child { border-right:none; }
+.impact .stat b { display:block; font-family:"Shrikhand",serif; font-weight:400; font-size:34px; line-height:1; color:var(--red); }
+.impact .stat span { display:block; font-family:"Space Grotesk",sans-serif; font-size:8px; letter-spacing:.12em; text-transform:uppercase; margin-top:5px; color:#4A3C34; }
+
+/* === QUOTE PANEL === */
+.quote { margin-top:20px; background:var(--ink); color:var(--paper); padding:16px 18px 17px 20px; position:relative; z-index:2; display:flex; gap:15px; align-items:flex-start; }
+.quote .qmark { font-family:"Shrikhand",serif; font-size:50px; line-height:.7; color:var(--red); }
+.quote p { font-family:"Libre Baskerville",serif; font-style:italic; font-size:15px; line-height:1.4; margin:0; }
+.quote small { display:block; font-family:"Space Grotesk",sans-serif; font-style:normal; font-size:8px; letter-spacing:.14em; text-transform:uppercase; color:rgba(245,242,239,.55); margin-top:7px; }
+
+/* === FOOTER === */
+.foot { display:flex; justify-content:space-between; align-items:flex-end; margin-top:22px; position:relative; z-index:2; font-family:"Space Grotesk",sans-serif; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+.foot .rule { flex:1; height:1px; background:rgba(28,20,16,.28); margin:0 16px 4px; }
+
+/* === MOTION === */
+.masthead,.hero,.band,.teaser,.pipeline,.impact,.quote,.foot { opacity:0; transform:translateY(14px); animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards; }
+.hero { animation-delay:.12s; } .band { animation-delay:.24s; } .teaser { animation-delay:.34s; } .pipeline { animation-delay:.42s; } .impact { animation-delay:.48s; } .quote { animation-delay:.54s; } .foot { animation-delay:.6s; }
+@keyframes rise { to { opacity:1; transform:translateY(0); } }
+.display { animation:settle 1s cubic-bezier(.2,.8,.2,1) .1s both; }
+@keyframes settle { from { opacity:0; transform:rotate(-7deg) translateY(18px); } to { opacity:1; transform:rotate(-4deg) translateY(0); } }
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <main class="deck-stage poster">
+
+    <!-- MASTHEAD -->
+    <header class="masthead">
+      <div class="logos">
+        <img class="niepmd" src="../../user/frontend/assets/niepmd-logo.png" alt="NIEPMD">
+        <div class="divider"></div>
+        <img class="rec" src="../../user/frontend/assets/rec-logo-small-nobg.png" alt="Rajalakshmi Engineering College">
+      </div>
+      <div class="meta">
+        <strong>Assistive learning<br>technology showcase</strong><br>
+        Department of CSE · 2026
+      </div>
+    </header>
+    <div class="top-rule"><span></span></div>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="eyebrow">Smart flashcards · Multi-modal learning</div>
+      <h1 class="display">Aira<span class="dot">.</span></h1>
+
+      <div class="hero-grid">
+        <p class="tagline">The flashcard that teaches<br><em>the whole concept.</em></p>
+        <p class="blurb">One trigger image opens <b>six connected ideas</b> — group, use, action, properties, place and association — in four languages.</p>
+      </div>
+    </section>
+
+    <!-- BAND -->
+    <div class="band">
+      <span>Scan</span><span>·</span><span>Explore</span><span>·</span><span>Listen</span><span>·</span><span>Understand</span>
+    </div>
+
+    <!-- CONTENT TEASER -->
+    <section class="teaser">
+      <div class="cell">
+        <div class="num">01</div>
+        <h3>Point the camera</h3>
+        <p>ORB vision recognises a printed card in under a second — no QR code, no typing.</p>
+      </div>
+      <div class="cell">
+        <div class="num">02</div>
+        <h3>Six ways in</h3>
+        <p>Each card unlocks a concept matrix, so one picture becomes a network of meaning.</p>
+      </div>
+      <div class="cell">
+        <div class="num">03</div>
+        <h3>Hear it locally</h3>
+        <p>English, Tamil, Hindi and Malayalam narration, generated on demand.</p>
+      </div>
+    </section>
+
+    <!-- PIPELINE -->
+    <section class="pipeline">
+      <div class="label">From printed card to lesson</div>
+      <div class="pipe-row">
+        <div class="pipe">Flutter app<small>Camera + UI</small></div>
+        <span class="pipe-arrow">→</span>
+        <div class="pipe">FastAPI backend<small>Unified REST API</small></div>
+        <span class="pipe-arrow">→</span>
+        <div class="pipe">ORB + gTTS<small>Vision &amp; voice</small></div>
+      </div>
+    </section>
+
+    <!-- IMPACT -->
+    <section class="impact">
+      <div class="stat"><b>07</b><span>images per card</span></div>
+      <div class="stat"><b>06</b><span>concept attributes</span></div>
+      <div class="stat"><b>04</b><span>languages</span></div>
+      <div class="stat"><b>01</b><span>scan to lesson</span></div>
+    </section>
+
+    <!-- QUOTE -->
+    <section class="quote">
+      <div class="qmark">“</div>
+      <p>Every child deserves more than one way into a word.
+        <small>The Aira design brief · NIEPMD collaboration</small>
+      </p>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="foot">
+      <span>Built with NIEPMD</span>
+      <span class="rule"></span>
+      <span>FastAPI · Flutter · OpenCV</span>
+    </footer>
+  </main>
+</div>
+
+<script>
+/* === SCALE THE FIXED A2 STAGE TO THE VIEWPORT === */
+const stage = document.querySelector('.deck-stage');
+const W = 780, H = 1103;
+function fit() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  const x = (window.innerWidth - W * s) / 2;
+  const y = (window.innerHeight - H * s) / 2;
+  stage.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+}
+window.addEventListener('resize', fit);
+fit();
+</script>
+</body>
+</html>

@@ -1316,6 +1316,7 @@ function toggleCardAttributesVisibility(domain) {
   const notice = document.getElementById('domainAttrNotice');
   const noticeText = document.getElementById('domainAttrNoticeText');
   const catGroup = document.getElementById('cardCategoryGroup');
+  const catLabel = document.getElementById('cardCategoryLabel');
   const titleHint = document.getElementById('cardTitleHint');
   const isEdit = Boolean(document.getElementById('cardFormId')?.value);
 
@@ -1339,7 +1340,12 @@ function toggleCardAttributesVisibility(domain) {
     }
   }
   if (catGroup) {
-    catGroup.style.display = isSyntax ? 'none' : 'block';
+    catGroup.style.display = 'block';
+  }
+  if (catLabel) {
+    catLabel.textContent = isSyntax
+      ? '2. Category Deck (Optional)'
+      : '2. Category Deck *';
   }
   if (titleHint) {
     titleHint.style.display = isSyntax ? 'block' : 'none';
@@ -1351,7 +1357,7 @@ function toggleCardAttributesVisibility(domain) {
       notice.style.display = 'block';
       if (noticeText) {
         if (isSyntax) {
-          noticeText.textContent = 'Syntax Domain: Flashcards require no category deck. Simply upload your target image, and its file name will automatically be used in the UI.';
+          noticeText.textContent = 'Syntax Domain: Choose a folder to place this story in, or leave the direct story deck option selected.';
         } else {
           noticeText.textContent = 'Non-Semantic Domain: Flashcards in this domain only require the Target / Main Image. The 6 semantic attributes and their image slots are disabled.';
         }
@@ -1384,8 +1390,18 @@ function populateCardCategorySelect(domain, selectedCatId = null) {
 
   const domLower = (domain || '').toLowerCase();
   if (domLower === 'syntax') {
-    formSelect.innerHTML = '<option value="">(No Category - Direct Story Deck)</option>';
-    formSelect.value = '';
+    const syntaxCategories = state.categories.filter(
+      c => (c.domain || 'semantic').toLowerCase() === domLower
+    );
+    const treeOptions = buildCategoryTreeOptionsHtml(domLower, selectedCatId);
+    formSelect.innerHTML =
+      '<option value="">(No Category - Direct Story Deck)</option>' +
+      treeOptions;
+    if (selectedCatId && syntaxCategories.some(c => c.id == selectedCatId)) {
+      formSelect.value = selectedCatId;
+    } else {
+      formSelect.value = '';
+    }
     return;
   }
 

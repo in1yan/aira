@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../services/api_client.dart';
-import 'card_list_screen.dart';
 import 'categories_screen.dart';
 import 'login_screen.dart';
 
@@ -909,9 +908,10 @@ class _HomeScreenState extends State<HomeScreen>
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const CardListScreen(
+                builder: (_) => const CategoriesScreen(
                   domain: 'syntax',
-                  customTitle: 'Syntax Stimulation Stories',
+                  title: 'Syntax Categories',
+                  themeColor: Color(0xFF7B1FA2),
                 ),
               ),
             );

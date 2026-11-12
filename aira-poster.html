@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aira — Smart Multi-Modal Flashcard Ecosystem | A2 Poster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   FIXED A2 STAGE — 1587 x 2245 px (420 x 594 mm at 96 dpi)
+   The whole poster is authored at this size and scaled as one
+   unit to the viewport. Nothing reflows for smaller screens.
+   ============================================================ */
+:root {
+  --stage-bg: #1A1F1C;
+  --paper: #FBFAF7;
+  --card: #FFFFFF;
+  --ink: #14201B;
+  --muted: #5B665F;
+  --line: #D7DCD6;
+  --green: #1F6F43;
+  --green-deep: #14532D;
+  --green-soft: #E7F2EA;
+  --amber: #A96A08;
+  --amber-bright: #F2C542;
+  --amber-soft: #FCF3D8;
+  --blue: #245FAE;
+  --blue-soft: #E8F0FA;
+  --purple: #5B3FA8;
+  --purple-soft: #EFEAFB;
+  --teal: #0D7580;
+  --teal-soft: #E2F2F3;
+  --orange: #B8420E;
+  --orange-soft: #FCEBE2;
+  --pink: #A82A66;
+  --pink-soft: #FBE8F1;
+  --indigo: #303086;
+  --indigo-soft: #EAEAF8;
+  --plum: #7A3E9D;
+  --plum-soft: #F2EAF7;
+}
+
+* { box-sizing: border-box; }
+html, body { width:100%; height:100%; margin:0; overflow:hidden; background:var(--stage-bg); }
+.deck-viewport { position:fixed; inset:0; overflow:hidden; background:var(--stage-bg); }
+
+.deck-stage {
+  position: absolute;
+  left: 0; top: 0;
+  width: 1587px;
+  height: 2245px;
+  overflow: hidden;
+  transform-origin: 0 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* ============================================================
+   POSTER SHELL
+   ============================================================ */
+.poster {
+  width: 1587px;
+  height: 2245px;
+  padding: 32px 38px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  background:
+    radial-gradient(900px 420px at 100% 0%, rgba(31,111,67,.045), transparent 65%),
+    radial-gradient(700px 400px at 0% 100%, rgba(242,197,66,.07), transparent 65%),
+    var(--paper);
+}
+
+/* reveal animation */
+.rv { opacity: 0; transform: translateY(10px); animation: rise .62s cubic-bezier(.22,.75,.2,1) forwards; }
+@keyframes rise { to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .15s !important; }
+}
+
+/* ============================================================
+   MASTHEAD — institution + programme logos
+   ============================================================ */
+.masthead {
+  height: 92px;
+  flex: 0 0 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 6px;
+}
+.logo-lockup { display: flex; align-items: center; gap: 12px; }
+.logo-lockup img.rec { width: 118px; height: auto; object-fit: contain; }
+.logo-lockup img.niepmd { width: 62px; height: 62px; object-fit: contain; }
+.logo-lockup .divider { width: 1px; height: 46px; background: var(--line); }
+.logo-copy { font-family: "IBM Plex Mono", monospace; font-size: 8.6px; letter-spacing: .1em; text-transform: uppercase; line-height: 1.5; color: var(--muted); }
+.logo-copy b { display: block; font-family: "Archivo", sans-serif; font-size: 11.5px; letter-spacing: .03em; color: var(--ink); font-weight: 700; margin-bottom: 1px; }
+.logo-lockup.partner { padding-left: 18px; border-left: 1px solid var(--line); }
+
+.brand-lockup { display: flex; align-items: center; gap: 14px; }
+.brand-mark {
+  width: 60px; height: 60px; border-radius: 14px;
+  background: linear-gradient(145deg, #2A8A55, #14532D);
+  display: grid; place-items: center; position: relative;
+  box-shadow: 0 6px 16px rgba(20,83,45,.18);
+}
+.brand-mark i {
+  position: absolute; width: 30px; height: 9px; border-radius: 3px;
+  background: #F4E9D8; transform: skewX(-16deg);
+}
+.brand-mark i:nth-child(1) { top: 17px; left: 15px; opacity: .55; }
+.brand-mark i:nth-child(2) { top: 26px; left: 18px; opacity: .8; }
+.brand-mark i:nth-child(3) { top: 35px; left: 21px; }
+.brand-name { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 38px; line-height: .9; letter-spacing: -.045em; color: var(--green-deep); }
+.brand-name span { color: var(--amber); }
+.brand-sub { font-family: "IBM Plex Mono", monospace; font-size: 8.5px; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); margin-top: 3px; }
+
+/* ============================================================
+   TOP BANNER
+   ============================================================ */
+.banner {
+  height: 40px; flex: 0 0 40px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #14532D 0%, #1F6F43 55%, #2A8A55 100%);
+  color: #F4F8F2;
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px; letter-spacing: .19em; text-transform: uppercase;
+  position: relative; overflow: hidden;
+}
+.banner::before {
+  content: ""; position: absolute; inset: 0;
+  background: repeating-linear-gradient(115deg, transparent 0 18px, rgba(255,255,255,.045) 18px 20px);
+}
+.banner span { position: relative; }
+.banner .sep { opacity: .55; }
+
+/* ============================================================
+   TITLE ROW
+   ============================================================ */
+.title-row {
+  height: 124px; flex: 0 0 124px;
+  display: grid; grid-template-columns: 126px 1fr;
+  gap: 20px; align-items: stretch;
+}
+.id-badge {
+  border-radius: 10px;
+  background: linear-gradient(155deg, #F7D05A, #F2C542 55%, #E8A317);
+  border: 1px solid #D9A817;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: #33240A; position: relative; overflow: hidden;
+}
+.id-badge::after {
+  content: ""; position: absolute; width: 90px; height: 90px; border-radius: 999px;
+  border: 1px solid rgba(51,36,10,.18); right: -34px; bottom: -38px;
+}
+.id-badge .top { font-family: "IBM Plex Mono", monospace; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; }
+.id-badge .big { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 31px; line-height: 1; letter-spacing: -.03em; margin: 4px 0 3px; }
+.id-badge .bottom { font-family: "IBM Plex Mono", monospace; font-size: 7.5px; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+
+.title-copy { display: flex; flex-direction: column; justify-content: center; padding-right: 4px; }
+.title-copy h1 {
+  font-family: "Archivo", sans-serif;
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1.06;
+  letter-spacing: -.025em;
+  margin: 0;
+  color: var(--ink);
+}
+.title-copy h1 .aira { color: var(--green); }
+.title-copy .team {
+  margin-top: 8px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+  font-family: "Archivo", sans-serif; font-size: 11.5px; color: var(--muted);
+}
+.title-copy .team b { color: var(--ink); font-weight: 700; }
+.title-copy .team .pipe { color: #B9C2BB; }
+
+/* ============================================================
+   MAIN TWO-COLUMN GRID
+   ============================================================ */
+.main-grid {
+  height: 1012px; flex: 0 0 1012px;
+  display: grid;
+  grid-template-columns: 1fr 1.12fr;
+  gap: 16px;
+}
+.col { display: flex; flex-direction: column; gap: 13px; min-height: 0; }
+
+/* ============================================================
+   SECTION CARD
+   ============================================================ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: flex; flex-direction: column;
+  min-height: 0; overflow: hidden;
+  box-shadow: 0 1px 0 rgba(20,32,27,.02);
+}
+.card-head {
+  flex: 0 0 auto;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px 9px;
+  border-bottom: 1px solid #E8EBE7;
+  position: relative;
+}
+.card-head::after {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: -1px;
+  height: 2px; background: var(--accent, var(--green)); opacity: .28;
+}
+.num {
+  width: 29px; height: 29px; flex: 0 0 29px; border-radius: 999px;
+  background: var(--accent, var(--green)); color: #fff;
+  font-family: "Archivo", sans-serif; font-weight: 800; font-size: 14px;
+  display: grid; place-items: center; line-height: 1;
+}
+.card-head h2 {
+  font-family: "Archivo", sans-serif; font-weight: 800;
+  font-size: 19px; letter-spacing: -.015em; line-height: 1.1;
+  margin: 0; color: var(--accent, var(--green));
+}
+.card-body {
+  flex: 1 1 auto; min-height: 0;
+  padding: 12px 15px 13px;
+  display: flex; flex-direction: column;
+}
+
+/* accent variants */
+.c1 { --accent: var(--green); }
+.c2 { --accent: var(--amber); }
+.c3 { --accent: var(--blue); }
+.c4 { --accent: var(--purple); }
+.c5 { --accent: var(--teal); }
+.c6 { --accent: var(--orange); }
+.c7 { --accent: var(--pink); }
+.c8 { --accent: var(--indigo); }
+.c9 { --accent: var(--plum); }
+
+/* text primitives */
+.prose {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 14.5px; line-height: 1.48; color: #26332C; margin: 0;
+}
+.prose + .prose { margin-top: 8px; }
+.prose b { color: var(--ink); font-weight: 600; }
+.note { font-family: "Archivo", sans-serif; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+.label {
+  font-family: "IBM Plex Mono", monospace; font-size: 8.5px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-family: "Archivo", sans-serif; font-size: 10px; font-weight: 600;
+  padding: 4px 9px; border-radius: 999px; background: var(--green-soft); color: var(--green-deep);
+  border: 1px solid #CFE2D4; line-height: 1.2;
+}
+.chip.alt { background: var(--blue-soft); color: var(--blue); border-color: #CFDDF2; }
+
+/* ============================================================
+   1 — PROBLEM STATEMENT
+   ============================================================ */
+.target-row { margin-top: auto; padding-top: 9px; border-top: 1px dashed #DCE2DC; }
+.target-row .label { margin-bottom: 6px; }
+.target-row .chips .chip { font-size: 9.5px; }
+
+/* ============================================================
+   2 — NEED & GAP
+   ============================================================ */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 10px; }
+.stat {
+  border-radius: 8px; padding: 8px 9px 7px;
+  background: var(--amber-soft); border: 1px solid #F0DDA9;
+}
+.stat b { display: block; font-family: "Archivo", sans-serif; font-weight: 900; font-size: 27px; line-height: 1; color: var(--amber); letter-spacing: -.04em; }
+.stat span { display: block; font-family: "Archivo", sans-serif; font-size: 8.8px; line-height: 1.28; color: #5B4A22; margin-top: 3px; }
+.gap-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
+.gap-list li { display: flex; gap: 7px; align-items: flex-start; font-family: "Archivo", sans-serif; font-size: 11px; line-height: 1.32; color: #33413A; }
+.gap-list li::before { content: ""; flex: 0 0 5px; width: 5px; height: 5px; border-radius: 999px; background: var(--amber-bright); margin-top: 5px; }
+.gap-list b { font-weight: 700; color: var(--ink); }
+
+/* ============================================================
+   3 — PROPOSED SOLUTION
+   ============================================================ */
+.solution-lead {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 15px; line-height: 1.42; margin: 0 0 9px; color: #22332A;
+}
+.solution-lead b { color: var(--green-deep); font-weight: 600; }
+.feature-list { display: flex; flex-direction: column; gap: 7px; }
+.feature {
+  display: grid; grid-template-columns: 30px 1fr; gap: 9px;
+  padding: 7px 9px; border-radius: 7px; background: #F7F9F7; border: 1px solid #E6EAE5;
+}
+.feature .fnum { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 15px; color: var(--blue); line-height: 1.1; }
+.feature h3 { font-family: "Archivo", sans-serif; font-size: 12.5px; margin: 0 0 1px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; }
+.feature p { font-family: "Archivo", sans-serif; font-size: 10.2px; line-height: 1.33; margin: 0; color: #44514A; }
+.author-strip {
+  margin-top: auto; padding-top: 8px;
+  display: flex; gap: 8px; align-items: flex-start;
+  border-top: 1px dashed #DCE2DC;
+  font-family: "Archivo", sans-serif; font-size: 10.3px; line-height: 1.35; color: #3B4942;
+}
+.author-strip .tag { flex: 0 0 auto; font-family: "IBM Plex Mono", monospace; font-size: 8px; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); background: var(--blue-soft); border: 1px solid #D2DFF1; padding: 3px 6px; border-radius: 4px; margin-top: 1px; }
+.flowline { display: flex; align-items: center; gap: 5px; margin-top: 9px; }
+.flowline span {
+  font-family: "Archivo", sans-serif; font-size: 8.6px; font-weight: 700;
+  letter-spacing: .03em; color: var(--blue);
+  background: var(--blue-soft); border: 1px solid #D2DFF1;
+  padding: 3px 9px; border-radius: 999px;
+}
+.flowline i { font-style: normal; color: #9DB7D8; font-family: "Archivo", sans-serif; font-size: 10px; font-weight: 700; }
+.concept-strip { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.concept-strip .lbl { font-family: "IBM Plex Mono", monospace; font-size: 7.4px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-right: 2px; }
+.concept-strip span { font-family: "Archivo", sans-serif; font-size: 8.8px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--green-soft); border: 1px solid #CFE2D4; color: var(--green-deep); }
+.concept-strip span:nth-child(even) { background: var(--blue-soft); border-color: #D2DFF1; color: var(--blue); }
+.outcome-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 9px; }
+.outcome-row div { display: flex; align-items: baseline; gap: 6px; background: var(--green-soft); border: 1px solid #CFE2D4; border-radius: 6px; padding: 5px 8px; }
+.outcome-row b { font-family: "Archivo", sans-serif; font-size: 15px; font-weight: 900; color: var(--green); line-height: 1; letter-spacing: -.03em; }
+.outcome-row span { font-family: "Archivo", sans-serif; font-size: 8.2px; line-height: 1.2; color: #3B5A45; }
+
+/* ============================================================
+   4 — SYSTEM ARCHITECTURE
+   ============================================================ */
+.arch { display: flex; flex-direction: column; justify-content: space-between; height: 100%; }
+.arch-row { display: grid; gap: 9px; }
+.arch-row.two { grid-template-columns: 1fr 1fr; }
+.arch-row.four { grid-template-columns: repeat(4, 1fr); }
+.arch-box {
+  border: 1px solid #D8D3E8; background: #FAF8FE; border-radius: 7px;
+  padding: 11px 10px; text-align: center;
+}
+.arch-box .t { font-family: "Archivo", sans-serif; font-size: 11px; font-weight: 700; color: #33245E; line-height: 1.2; }
+.arch-box .s { font-family: "IBM Plex Mono", monospace; font-size: 7.3px; letter-spacing: .06em; color: #766E90; margin-top: 2px; text-transform: uppercase; }
+.arch-box.client { background: #F3EEFC; border-color: #CFC2EC; padding: 15px 10px; }
+.arch-box.svc { background: #F7F4FE; border-color: #DDD5F0; padding: 12px 8px; }
+.arch-box.svc .t { font-size: 10.4px; }
+.arch-box.svc .s { font-size: 6.8px; }
+
+.api-box {
+  border: 1.5px solid #6B52B4; border-radius: 8px;
+  background: linear-gradient(180deg, #5B3FA8, #4B3391);
+  color: #fff; padding: 13px 10px 12px; text-align: center;
+  box-shadow: 0 4px 12px rgba(91,63,168,.16);
+}
+.api-box .t { font-family: "Archivo", sans-serif; font-weight: 800; font-size: 14.5px; letter-spacing: -.01em; }
+.api-box .s { font-family: "IBM Plex Mono", monospace; font-size: 7.8px; letter-spacing: .12em; opacity: .78; text-transform: uppercase; margin-top: 1px; }
+.endpoints { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 7px; }
+.endpoints span { font-family: "IBM Plex Mono", monospace; font-size: 7.6px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.22); padding: 2px 6px; border-radius: 999px; }
+
+.flow-arrow { height: 22px; position: relative; display: flex; align-items: center; justify-content: center; }
+.flow-arrow::before { content: ""; width: 1px; height: 100%; background: #B9AEDA; }
+.flow-arrow::after {
+  content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid #B9AEDA;
+}
+.arch-caption { font-family: "Archivo", sans-serif; font-size: 9.6px; line-height: 1.35; color: var(--muted); text-align: center; }
+.content-model {
+  border: 1px dashed #CFC2EC; background: #FBF9FF; border-radius: 6px;
+  padding: 8px 9px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-family: "IBM Plex Mono", monospace; font-size: 8px; color: #4C3C7A; letter-spacing: .04em;
+}
+.content-model i { font-style: normal; opacity: .45; }
+.arch-notes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.arch-notes div { background: #F7F4FE; border: 1px solid #E2DAF2; border-radius: 5px; padding: 5px 7px; font-family: "Archivo", sans-serif; font-size: 8.2px; line-height: 1.3; color: #4C3C7A; }
+.arch-notes b { display: block; font-family: "IBM Plex Mono", monospace; font-size: 6.8px; letter-spacing: .1em; text-transform: uppercase; color: #8578AC; margin-bottom: 1px; }
+
+/* ============================================================
+   5 — METHODOLOGY & TECH STACK
+   ============================================================ */
+.workflow { display: grid; grid-template-columns: 1fr 12px 1fr 12px 1fr 12px 1fr; align-items: center; gap: 0; margin-bottom: 10px; }
+.wf-step { border: 1px solid #CFE0E2; background: var(--teal-soft); border-radius: 8px; padding: 7px 6px 8px; text-align: center; }
+.wf-step b { display: block; font-family: "Archivo", sans-serif; font-size: 11.5px; font-weight: 800; color: var(--teal); }
+.wf-step span { display: block; font-family: "Archivo", sans-serif; font-size: 8.2px; color: #46646A; line-height: 1.25; margin-top: 2px; }
+.wf-arrow { text-align: center; color: #77A9AE; font-family: "Archivo", sans-serif; font-weight: 800; font-size: 13px; }
+
+.stack { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+.stack-group { display: flex; flex-direction: column; gap: 4px; }
+.stack-group .k { font-family: "IBM Plex Mono", monospace; font-size: 7.8px; letter-spacing: .13em; text-transform: uppercase; color: var(--teal); }
+.stack-group .v { display: flex; flex-wrap: wrap; gap: 4px; }
+.stack-group .v span {
+  font-family: "Archivo", sans-serif; font-size: 9.4px; font-weight: 500;
+  padding: 3px 7px; border-radius: 999px; background: #F2F7F7; border: 1px solid #D8E7E8; color: #2F5055;
+}
+.method-note { margin-top: 6px; padding-top: 0; border-top: none; font-family: "Archivo", sans-serif; font-size: 10.2px; line-height: 1.38; color: var(--muted); }
+.method-extra { margin-top: auto; padding-top: 9px; border-top: 1px dashed #DCE2DC; font-family: "Archivo", sans-serif; font-size: 9.6px; line-height: 1.4; color: #3B4E52; }
+.method-extra b { font-family: "IBM Plex Mono", monospace; font-size: 7.6px; letter-spacing: .12em; text-transform: uppercase; color: var(--teal); margin-right: 4px; }
+.method-note b { color: var(--ink); }
+
+/* ============================================================
+   6 — PROTOTYPE / DEMO (full width)
+   ============================================================ */
+.prototype { height: 356px; flex: 0 0 356px; --accent: var(--orange); }
+.prototype .card-body { flex-direction: row; gap: 13px; padding: 12px 15px 12px; align-items: stretch; }
+.screen-col { flex: 1 1 0; display: flex; flex-direction: column; min-width: 0; }
+.screen-stage {
+  flex: 1 1 auto; min-height: 0; border-radius: 8px;
+  background: #F6F3EC; border: 1px solid #E6E0D5;
+  display: grid; place-items: center; overflow: hidden; position: relative;
+}
+.screen-cap { flex: 0 0 auto; padding-top: 7px; }
+.screen-cap .tag { font-family: "IBM Plex Mono", monospace; font-size: 7.6px; letter-spacing: .12em; text-transform: uppercase; color: var(--orange); }
+.screen-cap h4 { font-family: "Archivo", sans-serif; font-size: 11.5px; font-weight: 800; margin: 1px 0 1px; letter-spacing: -.01em; }
+.screen-cap p { font-family: "Archivo", sans-serif; font-size: 8.8px; line-height: 1.28; color: var(--muted); margin: 0; }
+
+/* --- browser mock --- */
+.browser {
+  width: 95%; height: 91%; background: #fff; border: 1px solid #CFC8BB;
+  border-radius: 7px; overflow: hidden; box-shadow: 0 5px 14px rgba(51,43,31,.09);
+  display: flex; flex-direction: column;
+}
+.browser-bar { height: 18px; background: #EAE5DA; display: flex; align-items: center; gap: 3px; padding: 0 6px; flex: 0 0 18px; }
+.browser-bar i { width: 4px; height: 4px; border-radius: 999px; background: #C0B8A9; display: block; }
+.browser-bar .url { margin-left: 5px; flex: 1; height: 8px; border-radius: 999px; background: #F8F5EE; border: 1px solid #DDD6C9; }
+.browser-app { flex: 1; display: grid; grid-template-columns: 60px 1fr; min-height: 0; }
+.browser-side { background: #14532D; padding: 6px 5px; display: flex; flex-direction: column; gap: 4px; }
+.browser-side .logo { font-family: "Archivo", sans-serif; font-size: 8px; font-weight: 900; color: #fff; margin-bottom: 3px; }
+.browser-side .nav { height: 6px; border-radius: 3px; background: rgba(255,255,255,.18); }
+.browser-side .nav.on { background: #F2C542; }
+.browser-main { padding: 6px; background: #FBF9F4; overflow: hidden; }
+.browser-main .h { font-family: "Archivo", sans-serif; font-size: 7.5px; font-weight: 800; color: #14532D; margin-bottom: 4px; }
+.slot-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+.slot { aspect-ratio: 1.25; border-radius: 3px; border: 1px dashed #C9D6CB; background: #EDF5EE; display: grid; place-items: center; font-family: "IBM Plex Mono", monospace; font-size: 5px; color: #4E7C5B; }
+.slot.filled { border-style: solid; background: linear-gradient(150deg,#F7E4BF,#EBCB91); color: #7A5A20; }
+.slot.filled:nth-child(2n) { background: linear-gradient(150deg,#DCEBDD,#B9D8BE); color: #2D6A41; }
+.slot.filled:nth-child(3n) { background: linear-gradient(150deg,#E4E0F5,#CBC3EA); color: #4B3C7A; }
+
+/* --- phone mock --- */
+.phone {
+  width: 140px; height: 250px; border-radius: 22px;
+  background: #14201B; padding: 5px; position: relative;
+  box-shadow: 0 6px 16px rgba(51,43,31,.14);
+}
+.phone::before { content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 34px; height: 5px; border-radius: 999px; background: #0A100D; z-index: 5; }
+.phone-screen { width: 100%; height: 100%; border-radius: 15px; overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+
+/* scan screen */
+.scan { background: linear-gradient(165deg, #1B3A2B, #0E241A); color: #fff; position: relative; display: flex; flex-direction: column; }
+.scan .topbar { height: 23px; padding: 12px 8px 0; display: flex; justify-content: space-between; align-items: center; font-family: "Archivo", sans-serif; font-size: 6px; opacity: .85; }
+.scan .view { flex: 1; margin: 6px; border-radius: 8px; border: 1px solid rgba(242,197,66,.7); position: relative; background:
+  radial-gradient(circle at 50% 44%, rgba(242,197,66,.22), transparent 38%),
+  repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 12px),
+  #173228; display: grid; place-items: center; overflow: hidden; }
+.corner { position: absolute; width: 14px; height: 14px; border: 2px solid #F2C542; }
+.corner.tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+.corner.tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+.corner.bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+.corner.br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+.card-outline { width: 74px; height: 52px; border-radius: 4px; background: #F7E9C9; border: 1px solid #D9BE84; box-shadow: 0 6px 12px rgba(0,0,0,.2); display: grid; place-items: center; color: #6A4E1D; font-family: "Archivo", sans-serif; font-size: 7px; font-weight: 800; }
+.scan-cta { margin: 0 8px 8px; height: 19px; border-radius: 999px; background: #F2C542; color: #2A1E06; display: grid; place-items: center; font-family: "Archivo", sans-serif; font-size: 6.5px; font-weight: 800; letter-spacing: .04em; }
+
+/* card detail screen */
+.card-screen { background: #FFF; padding: 21px 8px 8px; }
+.card-screen .eyebrow { font-family: "IBM Plex Mono", monospace; font-size: 5px; letter-spacing: .12em; text-transform: uppercase; color: #7B857D; }
+.card-screen h5 { font-family: "Archivo", sans-serif; font-size: 15px; font-weight: 900; margin: 1px 0 5px; color: #14532D; letter-spacing: -.03em; }
+.card-screen .hero-img { height: 58px; border-radius: 7px; background: radial-gradient(circle at 50% 52%, #FFE1A8 0 28%, transparent 29%), linear-gradient(150deg,#F8E7C4,#E8C88F); border: 1px solid #E0C48A; margin-bottom: 6px; display: grid; place-items: center; }
+.card-screen .hero-img span { font-family: "Archivo", sans-serif; font-size: 6px; color: #7A5A20; font-weight: 700; }
+.concept-row { display: flex; align-items: center; gap: 4px; padding: 3.5px 5px; border-radius: 4px; background: #F4F8F4; margin-bottom: 3px; }
+.concept-row i { width: 10px; height: 10px; border-radius: 3px; background: #CFE4D2; flex: 0 0 10px; }
+.concept-row b { font-family: "Archivo", sans-serif; font-size: 5.6px; color: #273A2E; font-weight: 700; }
+.concept-row span { margin-left: auto; font-family: "IBM Plex Mono", monospace; font-size: 4.6px; color: #7B857D; }
+
+/* concept screen */
+.concept-screen { background: #FFF; padding: 21px 8px 8px; display: flex; flex-direction: column; }
+.concept-screen .back { font-family: "Archivo", sans-serif; font-size: 5.5px; color: #7B857D; }
+.concept-screen .badge { align-self: flex-start; margin-top: 4px; font-family: "Archivo", sans-serif; font-size: 5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; background: #FCEBE2; color: #B8420E; border: 1px solid #F3CDB9; border-radius: 999px; padding: 2px 5px; }
+.concept-screen h5 { font-family: "Archivo", sans-serif; font-size: 13px; font-weight: 900; margin: 3px 0 2px; color: #14201B; letter-spacing: -.03em; }
+.concept-screen .val { font-family: "Source Serif 4", serif; font-size: 6.5px; line-height: 1.3; color: #4C5A52; }
+.concept-screen .img { height: 54px; border-radius: 6px; margin: 5px 0; background: linear-gradient(150deg,#FBE3D4,#F1C5A8); border: 1px solid #EDC1A6; display: grid; place-items: center; font-family: "Archivo", sans-serif; font-size: 5.5px; color: #8A4A2C; font-weight: 700; }
+.audio-btn { height: 17px; border-radius: 999px; background: #B8420E; color: #fff; display: flex; align-items: center; justify-content: center; gap: 3px; font-family: "Archivo", sans-serif; font-size: 6px; font-weight: 700; }
+.audio-btn i { display: flex; align-items: flex-end; gap: 1px; height: 6px; }
+.audio-btn i b { width: 1px; background: #fff; display: block; animation: eq 1.2s ease-in-out infinite alternate; }
+.audio-btn i b:nth-child(1){height:3px;} .audio-btn i b:nth-child(2){height:6px; animation-delay:.2s;} .audio-btn i b:nth-child(3){height:4px; animation-delay:.4s;}
+@keyframes eq { to { height: 2px; } }
+.lang-row { display: flex; gap: 2px; margin-top: 4px; }
+.lang-row span { flex: 1; text-align: center; font-family: "Archivo", sans-serif; font-size: 4.6px; font-weight: 600; padding: 2px 0; border-radius: 999px; background: #F4F8F4; border: 1px solid #DDE7DE; color: #4C5A52; }
+.lang-row span.on { background: #14532D; color: #fff; border-color: #14532D; }
+
+/* ============================================================
+   TRIPLE ROW — 7, 8, 9
+   ============================================================ */
+.triple { height: 298px; flex: 0 0 298px; display: grid; grid-template-columns: 1fr 1.06fr 1fr; gap: 14px; }
+.triple .card-body { padding: 11px 14px 12px; }
+.bullets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.bullets li { display: flex; gap: 6px; align-items: flex-start; font-family: "Archivo", sans-serif; font-size: 10.8px; line-height: 1.32; color: #33413A; }
+.bullets li::before { content: ""; flex: 0 0 5px; width: 5px; height: 5px; border-radius: 999px; background: var(--accent); margin-top: 4px; }
+.bullets b { color: var(--ink); font-weight: 700; }
+.card-note { margin-top: auto; padding-top: 8px; border-top: 1px dashed #DCE2DC; font-family: "IBM Plex Mono", monospace; font-size: 7.8px; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+
+.subhead { font-family: "IBM Plex Mono", monospace; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); margin: 0 0 4px; }
+.subhead + .bullets { margin-bottom: 8px; }
+.mini-split { display: flex; flex-direction: column; height: 100%; }
+.mini-split .half + .half { margin-top: auto; padding-top: 8px; border-top: 1px dashed #DCE2DC; }
+
+.metric-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: auto; padding-top: 8px; }
+.metric-row div { text-align: center; background: var(--indigo-soft); border: 1px solid #D5D5EE; border-radius: 6px; padding: 4px 2px; }
+.metric-row b { display: block; font-family: "Archivo", sans-serif; font-size: 15px; font-weight: 900; color: var(--indigo); line-height: 1; }
+.metric-row span { display: block; font-family: "Archivo", sans-serif; font-size: 6.5px; color: #4C4C7A; margin-top: 2px; line-height: 1.15; }
+
+/* ============================================================
+   ACKNOWLEDGMENT + CONTACT
+   ============================================================ */
+.ack {
+  height: 86px; flex: 0 0 86px;
+  display: grid; grid-template-columns: 1.45fr 1fr;
+  gap: 16px; align-items: stretch;
+}
+.ack-box {
+  border: 1px solid var(--line); border-radius: 10px; background: #FFFFFF;
+  padding: 11px 14px; display: flex; flex-direction: column; justify-content: center;
+}
+.ack-box .label { margin-bottom: 4px; }
+.ack-box p { font-family: "Source Serif 4", Georgia, serif; font-size: 11.5px; line-height: 1.42; margin: 0; color: #33413A; }
+.ack-box p b { color: var(--ink); font-weight: 600; }
+.ack-box.contact { background: linear-gradient(135deg, #14532D, #1F6F43); border-color: #14532D; color: #fff; }
+.ack-box.contact .label { color: #BFE0C8; }
+.ack-box.contact p { color: #E9F3EA; }
+.ack-box.contact b { color: #fff; }
+.ack-box.contact .mail { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: #F2C542; margin-top: 3px; }
+
+/* ============================================================
+   FOOTER BAND
+   ============================================================ */
+.footer {
+  height: 44px; flex: 0 0 44px;
+  margin: 0 -38px;
+  background: linear-gradient(90deg, #303086, #3D2A72 55%, #14532D);
+  color: #F4F8F2;
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+}
+.footer .sep { opacity: .5; }
+
+/* ============================================================
+   PRINT — A2 portrait, one page, exact colours
+   ============================================================ */
+@page { size: 420mm 594mm; margin: 0; }
+@media print {
+  html, body { width: 1587px; height: 2245px; overflow: hidden; background: #fff; }
+  .deck-viewport { position: static; overflow: visible; background: #fff; }
+  .deck-stage { position: static; width: 1587px; height: 2245px; transform: none !important; }
+  .rv { opacity: 1 !important; transform: none !important; animation: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<div class="deck-viewport">
+  <main class="deck-stage poster">
+
+    <!-- ================= MASTHEAD ================= -->
+    <header class="masthead rv" style="animation-delay:.02s">
+      <div class="logo-lockup">
+        <img class="rec" src="user/frontend/assets/rec-logo-small-nobg.png" alt="Rajalakshmi Engineering College">
+        <div class="logo-copy">
+          <b>Rajalakshmi Engineering College</b>
+          Dept. of CSE (AI &amp; ML)
+        </div>
+      </div>
+      <div class="logo-lockup partner">
+        <img class="niepmd" src="user/frontend/assets/niepmd-logo.png" alt="NIEPMD">
+        <div class="logo-copy">
+          <b>NIEPMD, Chennai</b>
+          National Institute for the Empowerment<br>
+          of Persons with Multiple Disabilities
+        </div>
+      </div>
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div>
+          <div class="brand-name">Aira<span>.</span></div>
+          <div class="brand-sub">Smart multi-modal flashcards</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ================= BANNER ================= -->
+    <div class="banner rv" style="animation-delay:.06s">
+      <span>Assistive Technology Showcase</span><span class="sep">/</span>
+      <span>Inclusive Learning</span><span class="sep">/</span>
+      <span>NIEPMD × REC</span>
+    </div>
+
+    <!-- ================= TITLE ================= -->
+    <section class="title-row rv" style="animation-delay:.1s">
+      <div class="id-badge">
+        <div class="top">Project</div>
+        <div class="big">AIRA</div>
+        <div class="bottom">01 · 2026</div>
+      </div>
+      <div class="title-copy">
+        <h1><span class="aira">Aira</span>: A Smart Multi-Modal Flashcard Ecosystem for Children with Multiple Disabilities</h1>
+        <div class="team">
+          <b>Iniyan V</b>
+          <span class="pipe">|</span>
+          <span>B.E. CSE (AI &amp; ML)</span>
+          <span class="pipe">|</span>
+          <span>Rajalakshmi Engineering College</span>
+          <span class="pipe">|</span>
+          <span>In collaboration with NIEPMD</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= MAIN GRID ================= -->
+    <div class="main-grid rv" style="animation-delay:.14s">
+
+      <!-- LEFT COLUMN -->
+      <div class="col">
+
+        <!-- 1 -->
+        <section class="card c1" style="flex:0.98">
+          <div class="card-head"><span class="num">1</span><h2>Problem Statement</h2></div>
+          <div class="card-body">
+            <p class="prose">Children with multiple disabilities — including autism spectrum disorder, intellectual disability and communication disorders — benefit from <b>repeated, multi-sensory vocabulary instruction</b>. Printed flashcards, however, stop at a single picture and a single word. They cannot show how a concept relates to its group, use, action, properties, place or associations, and they cannot speak the child's home language.</p>
+            <p class="prose">Therapists and parents also lack a lightweight way to author personalised, image-rich card sets and keep them consistent across home and classroom.</p>
+            <div class="target-row">
+              <div class="label">Designed for</div>
+              <div class="chips">
+                <span class="chip">Children with multiple disabilities</span>
+                <span class="chip">Special educators &amp; therapists</span>
+                <span class="chip">Parents &amp; caregivers</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2 -->
+        <section class="card c2" style="flex:0.92">
+          <div class="card-head"><span class="num">2</span><h2>Need &amp; Gap</h2></div>
+          <div class="card-body">
+            <div class="stat-grid">
+              <div class="stat"><b>1:1</b><span>picture-to-word mapping in a conventional card</span></div>
+              <div class="stat"><b>0</b><span>audio, concept or language layers on paper</span></div>
+              <div class="stat"><b>7</b><span>images a therapist must prepare for one Aira card</span></div>
+            </div>
+            <ul class="gap-list">
+              <li><span><b>Paper cards &amp; AAC boards</b> are static, English-first and expensive to personalise.</span></li>
+              <li><span><b>Generic flashcard apps</b> teach a label, not the relationships around it.</span></li>
+              <li><span><b>Authoring is manual</b> — one trigger image plus six concept images per card, with four language variants.</span></li>
+              <li><span><b>Pre-readers cannot start</b> from a menu, search box or typed query.</span></li>
+            </ul>
+          </div>
+        </section>
+
+        <!-- 3 -->
+        <section class="card c3" style="flex:1.38">
+          <div class="card-head"><span class="num">3</span><h2>Proposed Solution</h2></div>
+          <div class="card-body">
+            <p class="solution-lead">Aira turns <b>one printed trigger image</b> into a <b>six-concept learning moment</b> — authored once, opened by camera, narrated in four languages.</p>
+            <div class="feature-list">
+              <div class="feature">
+                <div class="fnum">01</div>
+                <div>
+                  <h3>Scan the card</h3>
+                  <p>The Flutter app recognises a printed card with OpenCV ORB features and colour histograms. No QR code, no menu, no typing.</p>
+                </div>
+              </div>
+              <div class="feature">
+                <div class="fnum">02</div>
+                <div>
+                  <h3>Explore six concepts</h3>
+                  <p>Group, Use, Action, Properties, Location and Association unfold as image + simple text around the trigger picture.</p>
+                </div>
+              </div>
+              <div class="feature">
+                <div class="fnum">03</div>
+                <div>
+                  <h3>Listen in four languages</h3>
+                  <p>gTTS generates narration on demand in English, Tamil, Hindi and Malayalam — text and voice together.</p>
+                </div>
+              </div>
+            </div>
+            <div class="flowline">
+              <span>Author</span><i>→</i><span>Print</span><i>→</i><span>Scan</span><i>→</i><span>Explore</span><i>→</i><span>Listen</span>
+            </div>
+            <div class="concept-strip">
+              <span class="lbl">6 concepts</span>
+              <span>Group</span><span>Use</span><span>Action</span><span>Properties</span><span>Location</span><span>Association</span>
+            </div>
+            <div class="outcome-row">
+              <div><b>&lt;1s</b><span>card recognition</span></div>
+              <div><b>6</b><span>concept links</span></div>
+              <div><b>4</b><span>audio languages</span></div>
+            </div>
+            <div class="author-strip">
+              <span class="tag">Admin</span>
+              <span>Web portal for <b>1 trigger + 6 attribute images</b> per card, grouped into categories and subcategories, with user management and a built-in scanner test.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div class="col">
+
+        <!-- 4 -->
+        <section class="card c4" style="flex:1.18">
+          <div class="card-head"><span class="num">4</span><h2>System Architecture</h2></div>
+          <div class="card-body">
+            <div class="arch">
+              <div class="arch-row two">
+                <div class="arch-box client">
+                  <div class="t">Admin Dashboard</div>
+                  <div class="s">HTML · CSS · JavaScript</div>
+                </div>
+                <div class="arch-box client">
+                  <div class="t">Flutter Mobile App</div>
+                  <div class="s">Android · Web · Windows</div>
+                </div>
+              </div>
+
+              <div class="flow-arrow"></div>
+
+              <div class="api-box">
+                <div class="t">Unified FastAPI Service</div>
+                <div class="s">single REST API · port 8000</div>
+                <div class="endpoints">
+                  <span>/admin</span><span>/cards</span><span>/categories</span>
+                  <span>/detect</span><span>/tts</span><span>/auth</span>
+                </div>
+              </div>
+
+              <div class="flow-arrow"></div>
+
+              <div class="arch-row four">
+                <div class="arch-box svc">
+                  <div class="t">ORB Vision</div>
+                  <div class="s">OpenCV matcher</div>
+                </div>
+                <div class="arch-box svc">
+                  <div class="t">gTTS</div>
+                  <div class="s">EN · TA · HI · ML</div>
+                </div>
+                <div class="arch-box svc">
+                  <div class="t">Media Store</div>
+                  <div class="s">S3 / local files</div>
+                </div>
+                <div class="arch-box svc">
+                  <div class="t">Database</div>
+                  <div class="s">SQLite / PostgreSQL</div>
+                </div>
+              </div>
+
+              <div class="content-model">
+                Category <i>→</i> Subcategory <i>→</i> Card <i>→</i> 6 Attributes
+              </div>
+
+              <div class="arch-notes">
+                <div><b>One API</b>Admin and mobile share endpoints.</div>
+                <div><b>Media</b>S3-compatible or local disk.</div>
+                <div><b>Match</b>ORB features + HSV histogram.</div>
+              </div>
+
+              <div class="arch-caption">One backend serves both authoring and learning. Media is stored once and reused by every surface.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 5 -->
+        <section class="card c5" style="flex:0.9">
+          <div class="card-head"><span class="num">5</span><h2>Methodology &amp; Tech Stack</h2></div>
+          <div class="card-body">
+            <div class="workflow">
+              <div class="wf-step"><b>Research</b><span>Workflows &amp; taxonomy</span></div>
+              <div class="wf-arrow">›</div>
+              <div class="wf-step"><b>Design</b><span>7-image card model</span></div>
+              <div class="wf-arrow">›</div>
+              <div class="wf-step"><b>Build</b><span>App, admin &amp; API</span></div>
+              <div class="wf-arrow">›</div>
+              <div class="wf-step"><b>Evaluate</b><span>Match &amp; usability</span></div>
+            </div>
+
+            <div class="stack">
+              <div class="stack-group">
+                <div class="k">Frontend</div>
+                <div class="v"><span>Flutter</span><span>Material 3</span><span>HTML / CSS / JS</span></div>
+              </div>
+              <div class="stack-group">
+                <div class="k">Backend</div>
+                <div class="v"><span>FastAPI</span><span>SQLAlchemy</span><span>Pydantic</span><span>Uvicorn</span></div>
+              </div>
+              <div class="stack-group">
+                <div class="k">Vision</div>
+                <div class="v"><span>OpenCV</span><span>ORB</span><span>BFMatcher</span><span>HSV histograms</span></div>
+              </div>
+              <div class="stack-group">
+                <div class="k">Voice</div>
+                <div class="v"><span>gTTS</span><span>English</span><span>Tamil</span><span>Hindi</span><span>Malayalam</span></div>
+              </div>
+              <div class="stack-group">
+                <div class="k">Data</div>
+                <div class="v"><span>SQLite</span><span>PostgreSQL</span><span>S3-compatible storage</span></div>
+              </div>
+              <div class="stack-group">
+                <div class="k">Security</div>
+                <div class="v"><span>JWT</span><span>bcrypt</span><span>Role-based admin</span></div>
+              </div>
+            </div>
+
+            <div class="method-extra"><b>Evaluation</b> Match accuracy · time-to-first-card · authoring time · child engagement</div>
+            <div class="method-note"><b>Author once, reuse everywhere.</b> Admin-authored content and media are served to the mobile app through the same unified API.</div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ================= 6 — PROTOTYPE ================= -->
+    <section class="card prototype rv" style="animation-delay:.18s">
+      <div class="card-head"><span class="num">6</span><h2>Prototype / Demo</h2></div>
+      <div class="card-body">
+
+        <div class="screen-col">
+          <div class="screen-stage">
+            <div class="browser">
+              <div class="browser-bar"><i></i><i></i><i></i><div class="url"></div></div>
+              <div class="browser-app">
+                <div class="browser-side">
+                  <div class="logo">Aira</div>
+                  <div class="nav on"></div><div class="nav"></div><div class="nav"></div><div class="nav"></div>
+                </div>
+                <div class="browser-main">
+                  <div class="h">Card editor · 7-image matrix</div>
+                  <div class="slot-grid">
+                    <div class="slot filled">Trigger</div>
+                    <div class="slot filled">Group</div>
+                    <div class="slot filled">Use</div>
+                    <div class="slot filled">Action</div>
+                    <div class="slot filled">Property</div>
+                    <div class="slot filled">Place</div>
+                    <div class="slot filled">Assoc.</div>
+                    <div class="slot">+</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="screen-cap">
+            <div class="tag">01 · Admin portal</div>
+            <h4>Author the whole card</h4>
+            <p>Upload 1 trigger + 6 attribute images, set category and subcategory.</p>
+          </div>
+        </div>
+
+        <div class="screen-col">
+          <div class="screen-stage">
+            <div class="phone">
+              <div class="phone-screen scan">
+                <div class="topbar"><span>Aira</span><span>Scan</span></div>
+                <div class="view">
+                  <span class="corner tl"></span><span class="corner tr"></span>
+                  <span class="corner bl"></span><span class="corner br"></span>
+                  <div class="card-outline">DOG</div>
+                </div>
+                <div class="scan-cta">Point at a printed card</div>
+              </div>
+            </div>
+          </div>
+          <div class="screen-cap">
+            <div class="tag">02 · Camera</div>
+            <h4>Scan, don't search</h4>
+            <p>ORB vision finds the card; no menu or typing needed to begin.</p>
+          </div>
+        </div>
+
+        <div class="screen-col">
+          <div class="screen-stage">
+            <div class="phone">
+              <div class="phone-screen card-screen">
+                <div class="eyebrow">Flashcard</div>
+                <h5>Dog</h5>
+                <div class="hero-img"><span>Trigger image</span></div>
+                <div class="concept-row"><i></i><b>Group</b><span>Mammals</span></div>
+                <div class="concept-row"><i></i><b>Use</b><span>Companion</span></div>
+                <div class="concept-row"><i></i><b>Action</b><span>Barks</span></div>
+                <div class="concept-row"><i></i><b>Properties</b><span>Furry</span></div>
+                <div class="concept-row"><i></i><b>Location</b><span>Home</span></div>
+                <div class="concept-row"><i></i><b>Association</b><span>Loyal</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="screen-cap">
+            <div class="tag">03 · Card</div>
+            <h4>Six ways in</h4>
+            <p>Every card opens a concept matrix, not a single definition.</p>
+          </div>
+        </div>
+
+        <div class="screen-col">
+          <div class="screen-stage">
+            <div class="phone">
+              <div class="phone-screen concept-screen">
+                <div class="back">‹ Card</div>
+                <div class="badge">Concept</div>
+                <h5>Use</h5>
+                <div class="val">Pet and companion; support, security and therapy work.</div>
+                <div class="img">Attribute image</div>
+                <div class="audio-btn"><i><b></b><b></b><b></b></i> Play narration</div>
+                <div class="lang-row"><span class="on">EN</span><span>தமிழ்</span><span>हिंदी</span><span>മലയാളം</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="screen-cap">
+            <div class="tag">04 · Concept</div>
+            <h4>See it, hear it</h4>
+            <p>Image, simple explanation and audio in the child's language.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= 7, 8, 9 ================= -->
+    <div class="triple rv" style="animation-delay:.22s">
+
+      <section class="card c7">
+        <div class="card-head"><span class="num">7</span><h2>Accessibility &amp; Inclusion</h2></div>
+        <div class="card-body">
+          <ul class="bullets">
+            <li><span><b>Camera-first start</b> — no reading, typing or menu needed to begin.</span></li>
+            <li><span><b>Large touch targets</b> and consistent icon placement across screens.</span></li>
+            <li><span><b>Text + audio together</b> — narration in English, Tamil, Hindi and Malayalam.</span></li>
+            <li><span><b>Low-distraction layouts</b> — one idea per screen, clear hierarchy.</span></li>
+            <li><span><b>Low-cost Android phones</b> supported, with a web fallback.</span></li>
+            <li><span><b>No specialist hardware</b> — the phone camera is the only sensor.</span></li>
+            <li><span><b>Therapist-authored content</b> — personalisation without engineering.</span></li>
+          </ul>
+          <div class="card-note">Large type · high contrast · low distraction</div>
+        </div>
+      </section>
+
+      <section class="card c8">
+        <div class="card-head"><span class="num">8</span><h2>Impact &amp; Novelty</h2></div>
+        <div class="card-body mini-split">
+          <div class="half">
+            <div class="subhead">Impact</div>
+            <ul class="bullets">
+              <li><span>One card becomes a <b>network of six ideas</b>, not one label.</span></li>
+              <li><span>Personalised decks can be authored in minutes and reused.</span></li>
+              <li><span>Multilingual by design — the home language is a first-class layer.</span></li>
+            </ul>
+          </div>
+          <div class="half">
+            <div class="subhead">Novelty</div>
+            <ul class="bullets">
+              <li><span><b>7-image card model</b>: one trigger + six concept attributes.</span></li>
+              <li><span><b>Printed-card recognition</b> without QR codes, using ORB features.</span></li>
+              <li><span><b>Unified admin + mobile API</b> with on-demand TTS in four languages.</span></li>
+            </ul>
+          </div>
+          <div class="metric-row">
+            <div><b>7</b><span>images / card</span></div>
+            <div><b>6</b><span>concepts</span></div>
+            <div><b>4</b><span>languages</span></div>
+            <div><b>1</b><span>scan to lesson</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card c9">
+        <div class="card-head"><span class="num">9</span><h2>Future Scope</h2></div>
+        <div class="card-body">
+          <ul class="bullets">
+            <li><span><b>Progress tracking</b> and simple therapist reports across sessions.</span></li>
+            <li><span><b>Offline on-device vision</b> with cached audio for low-connectivity homes.</span></li>
+            <li><span><b>Printable card generator</b> from the admin portal, ready to cut and scan.</span></li>
+            <li><span><b>Classroom mode</b> with multi-child profiles and shared decks.</span></li>
+            <li><span><b>Pilot evaluation</b> with NIEPMD therapists and special educators.</span></li>
+            <li><span><b>More languages</b> and regional accents, plus symbol-supported cards.</span></li>
+            <li><span><b>Therapist dashboard</b> with deck-usage and progress insights.</span></li>
+          </ul>
+          <div class="card-note">Next milestone · NIEPMD pilot study</div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= ACKNOWLEDGMENT + CONTACT ================= -->
+    <section class="ack rv" style="animation-delay:.26s">
+      <div class="ack-box">
+        <div class="label">Acknowledgment</div>
+        <p>Developed in collaboration with the <b>National Institute for the Empowerment of Persons with Multiple Disabilities (NIEPMD), Chennai</b>, and supported by the <b>Department of Computer Science and Engineering (AI &amp; ML), Rajalakshmi Engineering College</b>.</p>
+      </div>
+      <div class="ack-box contact">
+        <div class="label">Contact</div>
+        <p><b>Iniyan V</b> · B.E. CSE (AI &amp; ML)</p>
+        <p class="mail">viniyan563@gmail.com</p>
+      </div>
+    </section>
+
+    <!-- ================= FOOTER ================= -->
+    <footer class="footer rv" style="animation-delay:.3s">
+      <span>Empowering abilities</span><span class="sep">·</span>
+      <span>Designing for inclusion</span><span class="sep">·</span>
+      <span>Learning without limits</span>
+    </footer>
+
+  </main>
+</div>
+
+<script>
+/* Scale the fixed A2 canvas to fit any screen without reflowing content. */
+const stage = document.querySelector('.deck-stage');
+const W = 1587, H = 2245;
+function fit() {
+  const s = Math.min(window.innerWidth / W, window.innerHeight / H);
+  const x = (window.innerWidth - W * s) / 2;
+  const y = (window.innerHeight - H * s) / 2;
+  stage.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+}
+window.addEventListener('resize', fit);
+fit();
+</script>
+</body>
+</html>
