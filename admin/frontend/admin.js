@@ -1229,7 +1229,7 @@ async function uploadImageFile(slot, file) {
 
       const domain = (document.getElementById('cardFormDomain')?.value || '').toLowerCase();
       const titleInput = document.getElementById('cardFormTitleEn');
-      if (domain === 'syntax' || !titleInput.value.trim()) {
+      if (domain !== 'syntax' && titleInput && !titleInput.value.trim()) {
         if (titleInput) {
           titleInput.value = originalFileName;
         }
@@ -1317,6 +1317,7 @@ function toggleCardAttributesVisibility(domain) {
   const noticeText = document.getElementById('domainAttrNoticeText');
   const catGroup = document.getElementById('cardCategoryGroup');
   const catLabel = document.getElementById('cardCategoryLabel');
+  const titleLabel = document.getElementById('cardTitleLabel');
   const titleHint = document.getElementById('cardTitleHint');
   const isEdit = Boolean(document.getElementById('cardFormId')?.value);
 
@@ -1346,6 +1347,11 @@ function toggleCardAttributesVisibility(domain) {
     catLabel.textContent = isSyntax
       ? '2. Category Deck (Optional)'
       : '2. Category Deck *';
+  }
+  if (titleLabel) {
+    titleLabel.textContent = isSyntax
+      ? 'Story / Card Name *'
+      : 'Word / Name (English) *';
   }
   if (titleHint) {
     titleHint.style.display = isSyntax ? 'block' : 'none';
@@ -1631,9 +1637,9 @@ async function handleCardSubmit(e) {
 
   const imageUrl = document.getElementById('cardFormImageUrl').value.trim();
   let titleEn = document.getElementById('cardFormTitleEn').value.trim();
-  if (isSyntax && !titleEn && imageUrl) {
-    const parts = imageUrl.split('/');
-    titleEn = parts[parts.length - 1].split('?')[0];
+  if (isSyntax && !titleEn) {
+    showToast('Please enter a story/card name for Syntax cards', 'error');
+    return;
   }
   if (!titleEn) {
     titleEn = 'Untitled Card';
