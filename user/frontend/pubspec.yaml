@@ -12,6 +12,7 @@ dependencies:
     sdk: flutter
   http: ^1.2.2
   http_parser: ^4.1.2
+  path_provider: ^2.1.5
   shared_preferences: ^2.3.3
   video_player: ^2.9.3
 
@@ -23,8 +24,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/
     - assets/niepmd-logo.png
-    - assets/videos/
+    - assets/rec-logo-small-nobg.png
 
 

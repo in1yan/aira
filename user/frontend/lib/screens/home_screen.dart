@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../services/api_client.dart';
+import '../services/video_cache_service.dart';
 import 'categories_screen.dart';
 import 'login_screen.dart';
 
@@ -12,8 +13,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
   bool _isLoggingOut = false;
   late AnimationController _animController;
@@ -27,13 +27,24 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isPlayingWelcome = false;
   String? _selectedConcept; // null initially (only triad menu shown)
 
-  static const String _introVideo = 'assets/videos/intro.mp4';
-  static const String _contentVideo = 'assets/videos/content.mp4';
-  static const String _useVideo = 'assets/videos/use.mp4';
-  static const String _formVideo = 'assets/videos/form.mp4';
+  static const String _introVideo = 'intro';
+  static const String _contentVideo = 'content';
+  static const String _useVideo = 'use';
+  static const String _formVideo = 'form';
+  static const _videoUrls = {
+    _introVideo:
+        'https://br-dawn-poetry-b3h0w61l.storage.c-4.ap-southeast-1.aws.neon.tech/cards/uploads/videos/intro.mp4',
+    _contentVideo:
+        'https://br-dawn-poetry-b3h0w61l.storage.c-4.ap-southeast-1.aws.neon.tech/cards/uploads/videos/content.mp4',
+    _useVideo:
+        'https://br-dawn-poetry-b3h0w61l.storage.c-4.ap-southeast-1.aws.neon.tech/cards/uploads/videos/use.mp4',
+    _formVideo:
+        'https://br-dawn-poetry-b3h0w61l.storage.c-4.ap-southeast-1.aws.neon.tech/cards/uploads/videos/form.mp4',
+  };
 
   int _videoRequestId = 0;
-  String? _currentVideoAsset;
+  String? _currentVideoKey;
+  static const _videoCache = VideoCacheService();
 
   String _videoAssetForConcept(String? concept) {
     switch (concept) {
@@ -69,9 +80,9 @@ class _HomeScreenState extends State<HomeScreen>
     _loadVideo(_introVideo);
   }
 
-  Future<void> _loadVideo(String asset) async {
-    if (_currentVideoAsset == asset) return;
-    _currentVideoAsset = asset;
+  Future<void> _loadVideo(String videoKey) async {
+    if (_currentVideoKey == videoKey) return;
+    _currentVideoKey = videoKey;
     final requestId = ++_videoRequestId;
 
     final old = _videoController;
@@ -88,7 +99,11 @@ class _HomeScreenState extends State<HomeScreen>
     await old?.dispose();
 
     try {
-      final controller = VideoPlayerController.asset(asset);
+      final url = _videoUrls[videoKey]!;
+      final cachedFile = await _videoCache.getCachedVideo(videoKey, url);
+      final controller = cachedFile != null
+          ? VideoPlayerController.file(cachedFile)
+          : VideoPlayerController.networkUrl(Uri.parse(url));
       await controller.initialize();
       if (!mounted || requestId != _videoRequestId) {
         await controller.dispose();
@@ -258,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // REC logo 
+        // REC logo
         Image.asset(
           'assets/rec-logo-small-nobg.png',
           width: 94,
@@ -326,8 +341,6 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ),
         const SizedBox(width: 12),
-
-
 
         // Quick logout / profile action
         IconButton(
@@ -732,7 +745,8 @@ class _HomeScreenState extends State<HomeScreen>
                   child: child,
                 ),
                 child: KeyedSubtree(
-                  key: ValueKey<String>(_selectedConcept ?? 'initial_stand_alone'),
+                  key: ValueKey<String>(
+                      _selectedConcept ?? 'initial_stand_alone'),
                   child: _buildConceptContent(),
                 ),
               ),
@@ -1061,8 +1075,10 @@ class _HomeScreenState extends State<HomeScreen>
                         shape: BoxShape.circle,
                         gradient: RadialGradient(
                           colors: [
-                            const Color(0xFF8B1538).withValues(alpha: 0.08 * glowVal),
-                            const Color(0xFFFF80AB).withValues(alpha: 0.04 * glowVal),
+                            const Color(0xFF8B1538)
+                                .withValues(alpha: 0.08 * glowVal),
+                            const Color(0xFFFF80AB)
+                                .withValues(alpha: 0.04 * glowVal),
                             Colors.transparent,
                           ],
                         ),
@@ -1223,19 +1239,22 @@ class _HomeScreenState extends State<HomeScreen>
                   Positioned(
                     left: isStandalone ? 22 : 18,
                     top: isStandalone ? 58 : 48,
-                    child: const _HandPointerWidget(waveColor: Color(0xFF4CAF50)),
+                    child:
+                        const _HandPointerWidget(waveColor: Color(0xFF4CAF50)),
                   ),
                 if (isForm)
                   Positioned(
                     right: isStandalone ? 10 : 8,
                     top: isStandalone ? 58 : 48,
-                    child: const _HandPointerWidget(waveColor: Color(0xFF03A9F4)),
+                    child:
+                        const _HandPointerWidget(waveColor: Color(0xFF03A9F4)),
                   ),
                 if (isUse)
                   Positioned(
                     left: isStandalone ? 54 : 45,
                     top: isStandalone ? 116 : 96,
-                    child: const _HandPointerWidget(waveColor: Color(0xFFFF9800)),
+                    child:
+                        const _HandPointerWidget(waveColor: Color(0xFFFF9800)),
                   ),
               ],
             ),
@@ -1556,7 +1575,8 @@ class _HomeScreenState extends State<HomeScreen>
                     icon: Icon(Icons.volume_up_rounded, color: color, size: 18),
                     tooltip: 'Speak sentence',
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                    constraints:
+                        const BoxConstraints(minWidth: 28, minHeight: 28),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -1873,8 +1893,8 @@ class _CircleActionButton extends StatelessWidget {
               // Glowing Animated Aura
               if (glowColor != null && glowIntensity > 0)
                 BoxShadow(
-                  color: glowColor!
-                      .withValues(alpha: (isSelected ? 0.55 : 0.35) * glowIntensity),
+                  color: glowColor!.withValues(
+                      alpha: (isSelected ? 0.55 : 0.35) * glowIntensity),
                   blurRadius: (isSelected ? 18 : 12) * glowIntensity + 4,
                   spreadRadius: (isSelected ? 4 : 2) * glowIntensity + 1,
                 ),
@@ -2132,7 +2152,8 @@ class PetalDecorationPainter extends CustomPainter {
     // Bottom-Left Petals
     _drawPetalCluster(canvas, paint, Offset(6, size.height - 6), -0.6);
     // Bottom-Right Petals
-    _drawPetalCluster(canvas, paint, Offset(size.width - 6, size.height - 6), -2.5);
+    _drawPetalCluster(
+        canvas, paint, Offset(size.width - 6, size.height - 6), -2.5);
   }
 
   void _drawPetalCluster(

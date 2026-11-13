@@ -984,6 +984,15 @@ let cropperState = {
 };
 
 function triggerImageSlotUpload(slot) {
+  const urlInput = slot === 'main'
+    ? document.getElementById('cardFormImageUrl')
+    : document.getElementById(`${slot}_image`);
+  if (urlInput && urlInput.value.trim()) {
+    updateSlotPreview(slot);
+    showToast('Using the pasted image URL. Clear it to upload a file instead.', 'info');
+    return;
+  }
+
   const fileInput = document.getElementById(`file_slot_${slot}`);
   if (fileInput) {
     fileInput.value = ''; // Reset so onChange fires even for same file
