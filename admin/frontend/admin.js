@@ -170,6 +170,10 @@ async function loadTabContent(tabId, force = false) {
         if (!state.loadedTabs.categories || force) {
           await fetchCategories(true);
         }
+        if (!state.loadedTabs.cards || force) {
+          await fetchCards();
+        }
+        renderCategories();
         break;
 
       case 'cards':
